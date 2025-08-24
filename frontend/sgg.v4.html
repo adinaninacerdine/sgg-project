@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SGG - Système de Gestion des Actions Ministérielles</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
+            --secondary: linear-gradient(135deg, #065F46 0%, #10B981 100%);
+            --success: linear-gradient(135deg, #059669 0%, #34D399 100%);
+            --danger: linear-gradient(135deg, #DC2626 0%, #F87171 100%);
+            --warning: linear-gradient(135deg, #D97706 0%, #FCD34D 100%);
+            --info: linear-gradient(135deg, #0EA5E9 0%, #7DD3FC 100%);
+            --dark: #0F172A;
+            --light: #F0F9FF;
+            --bg: #F8FAFC;
+            --text: #1E293B;
+            --sidebar-width: 260px;
+            --header-height: 70px;
+            --navy: #1E3A8A;
+            --sky-blue: #3B82F6;
+            --teal: #14B8A6;
+            --emerald: #10B981;
+            --aqua: #E0F2FE;
+            --shadow: rgba(30, 58, 138, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(180deg, var(--bg) 0%, #E0F2FE 100%);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* Login */
+        .login-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-overlay.active {
+            display: flex;
+        }
+
+        .login-box {
+            background: white;
+            border-radius: 30px;
+            padding: 50px;
+            width: 90%;
+            max-width: 480px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+        }
+
+        .login-logo {
+            width: 80px;
+            height: 80px;
+            background: var(--primary);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            color: white;
+            margin: 0 auto 20px;
+        }
+
+        /* Application */
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, var(--navy) 0%, var(--teal) 100%);
+            color: white;
+            position: fixed;
+            height: 100vh;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            overflow-y: auto;
+            box-shadow: 4px 0 20px var(--shadow);
+        }
+
+        .sidebar-header {
+            padding: 25px 20px;
+            background: rgba(255,255,255,0.1);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: var(--navy);
+        }
+
+        .nav-menu {
+            padding: 20px 0;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .nav-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .nav-item.active {
+            background: rgba(255,255,255,0.2);
+            border-left: 4px solid white;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            box-shadow: 0 2px 20px var(--shadow);
+        }
+
+        .header-title {
+            font-size: 28px;
+            font-weight: 600;
+            background: var(--primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Sections */
+        .section {
+            display: none;
+            padding: 30px;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 30px var(--shadow);
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+
+        /* Table */
+        .table-container {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 30px var(--shadow);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 15px;
+            background: var(--bg);
+            font-weight: 600;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid var(--bg);
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #7f8c8d;
+        }
+
+        .form-input,
+        .form-select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid var(--bg);
+            border-radius: 10px;
+            background: var(--bg);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        /* Alert */
+        .alert {
+            position: fixed;
+            top: 90px;
+            right: 30px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            z-index: 3000;
+        }
+
+        .alert.success { background: var(--success); }
+        .alert.error { background: var(--danger); }
+        .alert.warning { background: var(--warning); }
+        .alert.info { background: var(--info); }
+
+        /* FAB */
+        .fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 24px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <!-- Login -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-box">
+            <div class="login-logo">🏛️</div>
+            <h1 style="text-align: center; color: #1E3A8A;">SGG</h1>
+            <p style="text-align: center; color: #64748B;">Secrétariat Général du Gouvernement</p>
+            
+            <form id="loginForm" style="margin-top: 30px;">
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-input" id="loginEmail" value="admin@sgg.km" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Mot de passe</label>
+                    <input type="password" class="form-input" id="loginPassword" value="Admin@2025" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Se connecter</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Application -->
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">🏛️</div>
+                    <span>SGG</span>
+                </div>
+            </div>
+            
+            <nav class="nav-menu">
+                <a class="nav-item active" onclick="showSection('dashboard')">
+                    📊 Dashboard
+                </a>
+                <a class="nav-item" onclick="showSection('gestion')">
+                    📋 Gestion
+                </a>
+                <a class="nav-item" onclick="showSection('equipe')">
+                    👥 Équipe
+                </a>
+                <a class="nav-item" onclick="showSection('rapports')">
+                    📈 Rapports
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="header">
+                <h1 class="header-title">Système de Gestion des Actions</h1>
+                <div>
+                    <button class="btn btn-primary" onclick="syncData()">🔄 Synchroniser</button>
+                    <button class="btn btn-secondary" onclick="logout()">Déconnexion</button>
+                </div>
+            </header>
+
+            <!-- Dashboard -->
+            <section class="section active" id="dashboard">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div>📊 Total Actions</div>
+                        <div class="stat-value" id="totalActions">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div>✅ Terminées</div>
+                        <div class="stat-value" id="completedActions">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div>⏳ En Cours</div>
+                        <div class="stat-value" id="inProgressActions">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div>⚠️ En Retard</div>
+                        <div class="stat-value" id="overdueActions">0</div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <h3>Actions Récentes</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Ministère</th>
+                                <th>Action</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentActions"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Gestion -->
+            <section class="section" id="gestion">
+                <div class="table-container">
+                    <h2>Gestion des Actions</h2>
+                    <button class="btn btn-primary" onclick="openModal()">+ Nouvelle Action</button>
+                    <table style="margin-top: 20px;">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Ministère</th>
+                                <th>Action</th>
+                                <th>Responsable</th>
+                                <th>Statut</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="actionsTable"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Équipe -->
+            <section class="section" id="equipe">
+                <div class="table-container">
+                    <h2>Gestion de l'Équipe</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nom</th>
+                                <th>Poste</th>
+                                <th>Ministère</th>
+                                <th>Email</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teamTable"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Rapports -->
+            <section class="section" id="rapports">
+                <div class="table-container">
+                    <h2>Rapports</h2>
+                    <button class="btn btn-primary" onclick="generateReport()">Générer Rapport</button>
+                </div>
+            </section>
+        </main>
+
+        <!-- FAB -->
+        <button class="fab" onclick="openModal()">+</button>
+
+        <!-- Modal -->
+        <div class="modal" id="actionModal">
+            <div class="modal-content">
+                <h2>Nouvelle Action</h2>
+                <form id="actionForm">
+                    <div class="form-group">
+                        <label class="form-label">Ministère</label>
+                        <select class="form-select" id="ministere" required>
+                            <option value="">Sélectionner</option>
+                            <option value="Intérieur">Intérieur</option>
+                            <option value="Économie">Économie</option>
+                            <option value="Santé">Santé</option>
+                            <option value="Éducation">Éducation</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Action</label>
+                        <input type="text" class="form-input" id="action" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Responsable</label>
+                        <input type="text" class="form-input" id="responsable" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Statut</label>
+                        <select class="form-select" id="statut">
+                            <option value="nouveau">Nouveau</option>
+                            <option value="en-cours">En Cours</option>
+                            <option value="termine">Terminé</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_URL = 'http://alcamar.org/api';
+        const USE_DATABASE = true;
+        const REQUIRE_LOGIN = true;
+        
+        // État
+        let authToken = localStorage.getItem('sgg_token');
+        let currentUser = JSON.parse(localStorage.getItem('sgg_user') || 'null');
+        let actions = [];
+        let teamMembers = [];
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            if (REQUIRE_LOGIN && !authToken) {
+                document.getElementById('loginOverlay').classList.add('active');
+            } else {
+                initApp();
+            }
+        });
+
+        // Login
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    authToken = data.token;
+                    currentUser = data.user;
+                    
+                    localStorage.setItem('sgg_token', authToken);
+                    localStorage.setItem('sgg_user', JSON.stringify(currentUser));
+                    
+                    document.getElementById('loginOverlay').classList.remove('active');
+                    initApp();
+                    showAlert('Connexion réussie!', 'success');
+                } else {
+                    showAlert('Identifiants incorrects', 'error');
+                }
+            } catch (error) {
+                // Mode local si erreur
+                document.getElementById('loginOverlay').classList.remove('active');
+                initApp();
+            }
+        });
+
+        // Initialisation App
+        async function initApp() {
+            await loadData();
+            updateDashboard();
+            renderActions();
+            renderTeam();
+        }
+
+        // Chargement des données
+        async function loadData() {
+            // Charger depuis localStorage
+            const savedActions = localStorage.getItem('sgg_actions');
+            const savedTeam = localStorage.getItem('sgg_teamMembers');
+            
+            if (savedActions) actions = JSON.parse(savedActions);
+            if (savedTeam) teamMembers = JSON.parse(savedTeam);
+            
+            // Essayer de charger depuis la BD
+            if (USE_DATABASE && authToken) {
+                try {
+                    await loadFromDatabase();
+                } catch (error) {
+                    console.error('Erreur BD:', error);
+                }
+            }
+        }
+
+        // Charger depuis BD
+        async function loadFromDatabase() {
+            try {
+                const actionsRes = await fetch(`${API_URL}/actions`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (actionsRes.ok) {
+                    const dbActions = await actionsRes.json();
+                    actions = dbActions;
+                    localStorage.setItem('sgg_actions', JSON.stringify(actions));
+                }
+            } catch (error) {
+                console.error('Erreur chargement:', error);
+            }
+        }
+
+        // Synchronisation
+        async function syncData() {
+            showAlert('Synchronisation en cours...', 'info');
+            
+            try {
+                await loadFromDatabase();
+                updateDashboard();
+                renderActions();
+                showAlert('Synchronisation réussie!', 'success');
+            } catch (error) {
+                showAlert('Erreur de synchronisation', 'error');
+            }
+        }
+
+        // Gestion des actions
+        document.getElementById('actionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const action = {
+                id: 'ACT-' + Date.now(),
+                ministere: document.getElementById('ministere').value,
+                action: document.getElementById('action').value,
+                responsable: document.getElementById('responsable').value,
+                statut: document.getElementById('statut').value,
+                date: new Date().toISOString()
+            };
+            
+            actions.push(action);
+            localStorage.setItem('sgg_actions', JSON.stringify(actions));
+            
+            // Sauvegarder en BD si connecté
+            if (USE_DATABASE && authToken) {
+                try {
+                    await fetch(`${API_URL}/actions`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify(action)
+                    });
+                } catch (error) {
+                    console.error('Erreur sauvegarde:', error);
+                }
+            }
+            
+            closeModal();
+            renderActions();
+            updateDashboard();
+            showAlert('Action enregistrée!', 'success');
+        });
+
+        // Affichage
+        function updateDashboard() {
+            const total = actions.length;
+            const completed = actions.filter(a => a.statut === 'termine').length;
+            const inProgress = actions.filter(a => a.statut === 'en-cours').length;
+            const overdue = actions.filter(a => a.statut === 'en-retard').length;
+            
+            document.getElementById('totalActions').textContent = total;
+            document.getElementById('completedActions').textContent = completed;
+            document.getElementById('inProgressActions').textContent = inProgress;
+            document.getElementById('overdueActions').textContent = overdue;
+            
+            // Actions récentes
+            const tbody = document.getElementById('recentActions');
+            tbody.innerHTML = '';
+            
+            actions.slice(-5).reverse().forEach(action => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${action.id}</td>
+                    <td>${action.ministere}</td>
+                    <td>${action.action}</td>
+                    <td>${action.statut}</td>
+                `;
+            });
+        }
+
+        function renderActions() {
+            const tbody = document.getElementById('actionsTable');
+            if (!tbody) return;
+            
+            tbody.innerHTML = '';
+            
+            actions.forEach(action => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${action.id}</td>
+                    <td>${action.ministere}</td>
+                    <td>${action.action}</td>
+                    <td>${action.responsable}</td>
+                    <td>${action.statut}</td>
+                    <td>
+                        <button onclick="editAction('${action.id}')">✏️</button>
+                        <button onclick="deleteAction('${action.id}')">🗑️</button>
+                    </td>
+                `;
+            });
+        }
+
+        function renderTeam() {
+            const tbody = document.getElementById('teamTable');
+            if (!tbody) return;
+            
+            tbody.innerHTML = '';
+            
+            teamMembers.forEach(member => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${member.name}</td>
+                    <td>${member.position}</td>
+                    <td>${member.ministry}</td>
+                    <td>${member.email}</td>
+                `;
+            });
+        }
+
+        // Utilitaires
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+            
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function openModal() {
+            document.getElementById('actionModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('actionModal').classList.remove('active');
+            document.getElementById('actionForm').reset();
+        }
+
+        function showAlert(message, type) {
+            const alert = document.createElement('div');
+            alert.className = `alert ${type}`;
+            alert.textContent = message;
+            document.body.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 3000);
+        }
+
+        function logout() {
+            if (confirm('Voulez-vous vous déconnecter?')) {
+                localStorage.removeItem('sgg_token');
+                localStorage.removeItem('sgg_user');
+                location.reload();
+            }
+        }
+
+        function deleteAction(id) {
+            if (confirm('Supprimer cette action?')) {
+                actions = actions.filter(a => a.id !== id);
+                localStorage.setItem('sgg_actions', JSON.stringify(actions));
+                renderActions();
+                updateDashboard();
+            }
+        }
+
+        function editAction(id) {
+            const action = actions.find(a => a.id === id);
+            if (action) {
+                document.getElementById('ministere').value = action.ministere;
+                document.getElementById('action').value = action.action;
+                document.getElementById('responsable').value = action.responsable;
+                document.getElementById('statut').value = action.statut;
+                openModal();
+            }
+        }
+
+        function generateReport() {
+            alert('Rapport généré avec succès!');
+        }
+    </script>
+</body>
+</html>
