@@ -87,6 +87,15 @@ router.post('/login', [
 
         const user = result.rows[0];
 
+	// ⚠️ AJOUTER CETTE VÉRIFICATION ICI ⚠️
+        // Vérifier si le compte est activé
+        if (user.is_active === false) {
+            return res.status(403).json({ 
+                error: 'Votre compte est en attente de validation par un administrateur. Vous recevrez un email une fois votre compte activé.' 
+            });
+        }
+        // ⚠️ FIN DE LA VÉRIFICATION ⚠️
+
         // Vérifier le mot de passe
         const validPassword = await bcrypt.compare(password, user.password);
         

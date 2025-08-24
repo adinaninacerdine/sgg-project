@@ -23,12 +23,19 @@ try {
     const authRoutes = require('./routes/auth');
     const actionsRoutes = require('./routes/actions');
     const teamsRoutes = require('./routes/teams');
+    const usersRoutes = require('./routes/users');
+    const ministriesRoutes = require('./routes/ministries');
     
     app.use('/api/auth', authRoutes);
     app.use('/api/actions', actionsRoutes);
     app.use('/api/teams', teamsRoutes);
+    app.use('/api/users', usersRoutes);
+    app.use('/api/ministries', ministriesRoutes);
+
+    console.log('✅ Routes chargées avec succès'); // AJOUTER CETTE LIGNE
 } catch (err) {
-    console.log('⚠️ Routes non encore créées');
+    console.log('⚠️  Erreur chargement routes:', err.message);
+    console.error(err); // AJOUTER CETTE LIGNE
 }
 
 app.listen(PORT, () => {

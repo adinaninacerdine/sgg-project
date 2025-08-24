@@ -165,6 +165,14 @@
             align-items: center;
         }
 
+        #userInfo {
+            padding: 8px 15px;
+            background: var(--bg);
+            border-radius: 10px;
+            color: var(--navy);
+            font-weight: 500;
+        }
+
         /* Sections */
         .section {
             display: none;
@@ -820,6 +828,8 @@
             <header class="header">
                 <h1 class="header-title">Système de Gestion des Actions Ministérielles</h1>
                 <div class="header-actions">
+                    <span id="userInfo"></span>
+                    <button class="btn btn-secondary" onclick="logout()">🚪 Déconnexion</button>
                     <button class="btn btn-success" onclick="exportToExcel()">📥 Export Excel</button>
                     <button class="btn btn-secondary" onclick="exportToPDF()">📄 Export PDF</button>
                     <button class="btn btn-primary" onclick="backupData()">💾 Sauvegarder</button>
@@ -1027,6 +1037,63 @@
                     </div>
                 </div>
             </section>
+
+	    <!-- Section Administration (Admin seulement) -->
+	    <section class="section" id="administration">
+    		<div class="table-container">
+        		<h2>Administration des Utilisateurs</h2>
+        
+        		<div class="stats-grid" style="margin: 20px 0;">
+            			<div class="stat-card">
+                			<div class="stat-value" id="totalUsers">0</div>
+                			<div class="stat-label">Total Utilisateurs</div>
+            			</div>
+            			<div class="stat-card warning">
+                			<div class="stat-value" id="pendingUsers">0</div>
+                			<div class="stat-label">En Attente</div>
+            			</div>
+            			<div class="stat-card success">
+                			<div class="stat-value" id="activeUsers">0</div>
+                			<div class="stat-label">Actifs</div>
+            			</div>
+        		</div>
+
+        		<div id="pendingUsersAlert" class="alert warning" style="display: none; position: relative; margin: 20px 0;">
+            			<strong>⚠️ Utilisateurs en attente de validation</strong>
+        		</div>
+
+        		<h3>Utilisateurs en attente</h3>
+        		<table>
+            			<thead>
+               				 <tr>
+                    				<th>Nom</th>
+                    				<th>Email</th>
+                    				<th>Ministère</th>
+                    				<th>Date d'inscription</th>
+                    				<th>Actions</th>
+                			</tr>
+            			</thead>
+            			<tbody id="pendingUsersTable"></tbody>
+        		</table>
+
+        		<h3 style="margin-top: 30px;">Tous les utilisateurs</h3>
+        		<table>
+            			<thead>
+                			<tr>
+                    				<th>Nom</th>
+                    				<th>Email</th>
+                    				<th>Ministère</th>
+                    				<th>Rôle</th>
+                    				<th>Statut</th>
+                    				<th>Dernière connexion</th>
+                    				<th>Actions</th>
+                			</tr>
+            			</thead>
+            			<tbody id="allUsersTable"></tbody>
+        		</table>
+    		</div>
+	</section>
+
         </main>
 
         <!-- FAB -->
@@ -1186,6 +1253,15 @@
     </div>
 
     <script>
+        // ==========================================
+        // INTÉGRATION API
+        // ==========================================
+
+        // Configuration API
+        const API_URL = 'http://alcamar.org/api';
+        let authToken = localStorage.getItem('sgg_token');
+        let currentUser = JSON.parse(localStorage.getItem('sgg_user') || '{}');
+
         // État global
         let actions = [];
         let teamMembers = [];
@@ -1193,11 +1269,45 @@
         let currentFilter = 'all';
         let editingIndex = null;
 
-        // Initialisation
-        document.addEventListener('DOMContentLoaded', function() {
-            loadFromLocalStorage();
+        // Vérification de l'authentification au chargement
+        window.addEventListener('DOMContentLoaded', async function() {
+            // Vérifier si l'utilisateur est connecté
+            if (!authToken) {
+                window.location.href = './login.html';
+                return;
+            }
+
+            // Vérifier la validité du token
+            try {
+                const response = await fetch(`${API_URL}/auth/verify`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Token invalide');
+                }
+
+                const data = await response.json();
+                currentUser = data.user;
+                localStorage.setItem('sgg_user', JSON.stringify(currentUser));
+
+                // Afficher les infos utilisateur dans le header
+                updateUserInfo();
+
+            } catch (error) {
+                console.error('Erreur authentification:', error);
+                localStorage.removeItem('sgg_token');
+                localStorage.removeItem('sgg_user');
+                window.location.href = './login.html';
+                return;
+            }
+
+            // Charger les données depuis l'API
+            await loadDataFromAPI();
             
-            // Ajouter des ministères par défaut si vide
+            // Charger les ministères par défaut si vide
             if (ministries.length === 0) {
                 ministries = [
                     { name: 'Intérieur', abbrev: 'MI' },
@@ -1217,47 +1327,137 @@
             renderMinistries();
             populateDropdowns();
             initCharts();
-            
-            // Auto-save
-            setInterval(saveToLocalStorage, 30000);
         });
 
-        // Gestion des formulaires
-        document.getElementById('actionForm').addEventListener('submit', function(e) {
+        // Fonction pour charger les données depuis l'API
+        async function loadDataFromAPI() {
+            try {
+                // Charger les actions
+                const actionsResponse = await fetch(`${API_URL}/actions`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                if (actionsResponse.ok) {
+                    const actionsData = await actionsResponse.json();
+                    actions = actionsData.map(action => ({
+                        id: action.id,
+                        ministere: action.ministry,
+                        action: action.action_title,
+                        description: action.description,
+                        responsable: action.responsible,
+                        priorite: action.priority,
+                        dateDebut: action.start_date,
+                        dateFin: action.end_date,
+                        statut: action.status,
+                        dateCreation: action.created_at
+                    }));
+                }
+
+                // Charger l'équipe
+                const teamResponse = await fetch(`${API_URL}/teams`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                if (teamResponse.ok) {
+                    const teamData = await teamResponse.json();
+                    teamMembers = teamData.map(member => ({
+                        id: member.id,
+                        name: member.name,
+                        position: member.position,
+                        ministry: member.ministry,
+                        email: member.email,
+                        phone: member.phone
+                    }));
+                }
+
+            } catch (error) {
+                console.error('Erreur chargement données API:', error);
+                // En cas d'erreur, charger depuis le localStorage
+                loadFromLocalStorage();
+            }
+        }
+
+        // Fonction pour afficher les infos utilisateur
+        function updateUserInfo() {
+            if (currentUser && currentUser.name) {
+                const userInfo = document.getElementById('userInfo');
+                if (userInfo) {
+                    userInfo.textContent = `👤 ${currentUser.name}`;
+                }
+            }
+        }
+
+        // Fonction de déconnexion
+        function logout() {
+            localStorage.removeItem('sgg_token');
+            localStorage.removeItem('sgg_user');
+            window.location.href = './login.html';
+        }
+
+        // Gestion des formulaires avec API
+        document.getElementById('actionForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const action = {
-                id: editingIndex !== null ? actions[editingIndex].id : generateId(),
-                ministere: document.getElementById('ministere').value,
-                action: document.getElementById('action').value,
+            const actionData = {
+                ministry: document.getElementById('ministere').value,
+                action_title: document.getElementById('action').value,
                 description: document.getElementById('description').value,
-                responsable: document.getElementById('responsable').value,
-                priorite: document.getElementById('priorite').value,
-                dateDebut: document.getElementById('dateDebut').value,
-                dateFin: document.getElementById('dateFin').value,
-                statut: document.getElementById('statut').value,
-                dateCreation: editingIndex !== null ? actions[editingIndex].dateCreation : new Date().toISOString()
+                responsible: document.getElementById('responsable').value,
+                priority: document.getElementById('priorite').value,
+                start_date: document.getElementById('dateDebut').value,
+                end_date: document.getElementById('dateFin').value,
+                status: document.getElementById('statut').value
             };
 
-            if (editingIndex !== null) {
-                actions[editingIndex] = action;
-                editingIndex = null;
-            } else {
-                actions.push(action);
-            }
+            try {
+                let response;
+                
+                if (editingIndex !== null) {
+                    // Mise à jour
+                    const actionId = actions[editingIndex].id;
+                    response = await fetch(`${API_URL}/actions/${actionId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify(actionData)
+                    });
+                } else {
+                    // Création
+                    response = await fetch(`${API_URL}/actions`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify(actionData)
+                    });
+                }
 
-            saveToLocalStorage();
-            closeActionModal();
-            renderActions();
-            updateDashboard();
-            showAlert('Action enregistrée avec succès!', 'success');
+                if (response.ok) {
+                    await loadDataFromAPI();
+                    closeActionModal();
+                    renderActions();
+                    updateDashboard();
+                    showAlert('Action enregistrée avec succès!', 'success');
+                } else {
+                    const error = await response.json();
+                    showAlert(error.error || 'Erreur lors de l\'enregistrement', 'error');
+                }
+            } catch (error) {
+                console.error('Erreur sauvegarde action:', error);
+                // Fallback en mode local
+                saveActionLocally(actionData);
+            }
         });
 
-        document.getElementById('teamForm').addEventListener('submit', function(e) {
+        document.getElementById('teamForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const member = {
-                id: generateId('TEAM'),
+            const memberData = {
                 name: document.getElementById('teamName').value,
                 position: document.getElementById('teamPosition').value,
                 ministry: document.getElementById('teamMinistry').value,
@@ -1265,12 +1465,31 @@
                 phone: document.getElementById('teamPhone').value
             };
 
-            teamMembers.push(member);
-            saveToLocalStorage();
-            closeTeamModal();
-            renderTeam();
-            populateDropdowns();
-            showAlert('Membre ajouté avec succès!', 'success');
+            try {
+                const response = await fetch(`${API_URL}/teams`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(memberData)
+                });
+
+                if (response.ok) {
+                    await loadDataFromAPI();
+                    closeTeamModal();
+                    renderTeam();
+                    populateDropdowns();
+                    showAlert('Membre ajouté avec succès!', 'success');
+                } else {
+                    const error = await response.json();
+                    showAlert(error.error || 'Erreur lors de l\'ajout', 'error');
+                }
+            } catch (error) {
+                console.error('Erreur ajout membre:', error);
+                // Fallback en mode local
+                saveMemberLocally(memberData);
+            }
         });
 
         document.getElementById('ministryForm').addEventListener('submit', function(e) {
@@ -1289,6 +1508,53 @@
             populateDropdowns();
             showAlert('Ministère ajouté avec succès!', 'success');
         });
+
+        // Fallback pour sauvegarde locale
+        function saveActionLocally(actionData) {
+            const action = {
+                id: editingIndex !== null ? actions[editingIndex].id : generateId(),
+                ministere: actionData.ministry,
+                action: actionData.action_title,
+                description: actionData.description,
+                responsable: actionData.responsible,
+                priorite: actionData.priority,
+                dateDebut: actionData.start_date,
+                dateFin: actionData.end_date,
+                statut: actionData.status,
+                dateCreation: editingIndex !== null ? actions[editingIndex].dateCreation : new Date().toISOString()
+            };
+
+            if (editingIndex !== null) {
+                actions[editingIndex] = action;
+                editingIndex = null;
+            } else {
+                actions.push(action);
+            }
+
+            saveToLocalStorage();
+            closeActionModal();
+            renderActions();
+            updateDashboard();
+            showAlert('Action enregistrée localement!', 'success');
+        }
+
+        function saveMemberLocally(memberData) {
+            const member = {
+                id: generateId('TEAM'),
+                name: memberData.name,
+                position: memberData.position,
+                ministry: memberData.ministry,
+                email: memberData.email,
+                phone: memberData.phone
+            };
+
+            teamMembers.push(member);
+            saveToLocalStorage();
+            closeTeamModal();
+            renderTeam();
+            populateDropdowns();
+            showAlert('Membre ajouté localement!', 'success');
+        }
 
         // Fonctions utilitaires
         function generateId(prefix = 'ACT') {
@@ -1582,8 +1848,8 @@
             });
         }
 
-        // Actions CRUD
-        function editAction(index) {
+        // Actions CRUD avec API
+        async function editAction(index) {
             const action = actions[index];
             editingIndex = index;
             
@@ -1600,23 +1866,68 @@
             openActionModal();
         }
 
-        function deleteAction(index) {
+        async function deleteAction(index) {
             if (confirm('Supprimer cette action?')) {
-                actions.splice(index, 1);
-                saveToLocalStorage();
-                renderActions();
-                updateDashboard();
-                showAlert('Action supprimée', 'warning');
+                const actionId = actions[index].id;
+                
+                try {
+                    const response = await fetch(`${API_URL}/actions/${actionId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        await loadDataFromAPI();
+                        renderActions();
+                        updateDashboard();
+                        showAlert('Action supprimée', 'warning');
+                    } else {
+                        showAlert('Erreur lors de la suppression', 'error');
+                    }
+                } catch (error) {
+                    console.error('Erreur suppression:', error);
+                    // Fallback local
+                    actions.splice(index, 1);
+                    saveToLocalStorage();
+                    renderActions();
+                    updateDashboard();
+                    showAlert('Action supprimée localement', 'warning');
+                }
             }
         }
 
-        function deleteTeamMember(index) {
+        async function deleteTeamMember(index) {
             if (confirm('Supprimer ce membre?')) {
-                teamMembers.splice(index, 1);
-                saveToLocalStorage();
-                renderTeam();
-                populateDropdowns();
-                showAlert('Membre supprimé', 'warning');
+                const memberId = teamMembers[index].id;
+                
+                try {
+                    const response = await fetch(`${API_URL}/teams/${memberId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        await loadDataFromAPI();
+                        renderTeam();
+                        populateDropdowns();
+                        showAlert('Membre supprimé', 'warning');
+                    } else {
+                        const error = await response.json();
+                        showAlert(error.error || 'Erreur lors de la suppression', 'error');
+                    }
+                } catch (error) {
+                    console.error('Erreur suppression:', error);
+                    // Fallback local
+                    teamMembers.splice(index, 1);
+                    saveToLocalStorage();
+                    renderTeam();
+                    populateDropdowns();
+                    showAlert('Membre supprimé localement', 'warning');
+                }
             }
         }
 
@@ -1640,6 +1951,7 @@
             document.getElementById('actionModal').classList.remove('active');
             document.getElementById('actionForm').reset();
             editingIndex = null;
+            document.querySelector('#actionModal .modal-title').textContent = 'Nouvelle Action';
         }
 
         function openTeamModal() {
@@ -1763,7 +2075,6 @@
         }
 
         function exportToPDF() {
-            // Créer un contenu HTML pour l'impression PDF
             const printWindow = window.open('', '_blank');
             
             let htmlContent = `
@@ -1788,7 +2099,7 @@
                     </style>
                 </head>
                 <body>
-                    <h1>🏛️ Secrétariat Général du Gouvernement</h1>
+                    <h1>Secrétariat Général du Gouvernement</h1>
                     <h2>Rapport des Actions Ministérielles</h2>
                     <p><strong>Date du rapport:</strong> ${new Date().toLocaleDateString('fr-FR')}</p>
                     
@@ -1835,64 +2146,12 @@
             htmlContent += `
                         </tbody>
                     </table>
-                    
-                    <h2>Répartition par Ministère</h2>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Ministère</th>
-                                <th>Total Actions</th>
-                                <th>Terminées</th>
-                                <th>En Cours</th>
-                                <th>En Retard</th>
-                            </tr>
-                        </thead>
-                        <tbody>`;
-            
-            const ministryStats = {};
-            actions.forEach(action => {
-                if (!ministryStats[action.ministere]) {
-                    ministryStats[action.ministere] = {
-                        total: 0,
-                        completed: 0,
-                        inProgress: 0,
-                        overdue: 0
-                    };
-                }
-                ministryStats[action.ministere].total++;
-                if (action.statut === 'termine') ministryStats[action.ministere].completed++;
-                if (action.statut === 'en-cours') ministryStats[action.ministere].inProgress++;
-                if (checkIfOverdue(action) && action.statut !== 'termine') ministryStats[action.ministere].overdue++;
-            });
-            
-            Object.entries(ministryStats).forEach(([ministry, stats]) => {
-                htmlContent += `
-                    <tr>
-                        <td>${ministry}</td>
-                        <td>${stats.total}</td>
-                        <td>${stats.completed}</td>
-                        <td>${stats.inProgress}</td>
-                        <td>${stats.overdue}</td>
-                    </tr>`;
-            });
-            
-            htmlContent += `
-                        </tbody>
-                    </table>
-                    
-                    <div style="margin-top: 50px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666;">
-                        <p>Généré par SGG - Système de Gestion des Actions Ministérielles</p>
-                        <p>${new Date().toLocaleString('fr-FR')}</p>
-                    </div>
                 </body>
                 </html>`;
             
             printWindow.document.write(htmlContent);
             printWindow.document.close();
-            
-            setTimeout(() => {
-                printWindow.print();
-            }, 500);
+            setTimeout(() => printWindow.print(), 500);
             
             showAlert('PDF prêt à imprimer!', 'success');
         }
@@ -2000,247 +2259,15 @@
 
         // Rapports
         function generateMonthlyReport() {
-            const currentMonth = new Date().toLocaleString('fr-FR', { month: 'long', year: 'numeric' });
-            const monthActions = actions.filter(a => {
-                const actionDate = new Date(a.dateDebut);
-                const now = new Date();
-                return actionDate.getMonth() === now.getMonth() && 
-                       actionDate.getFullYear() === now.getFullYear();
-            });
-            
-            const printWindow = window.open('', '_blank');
-            
-            let htmlContent = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Rapport Mensuel - ${currentMonth}</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; padding: 40px; }
-                        h1 { color: #1E3A8A; }
-                        .stats { background: #E0F2FE; padding: 20px; border-radius: 10px; margin: 20px 0; }
-                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                        th { background: #1E3A8A; color: white; padding: 10px; }
-                        td { padding: 8px; border-bottom: 1px solid #ddd; }
-                    </style>
-                </head>
-                <body>
-                    <h1>Rapport Mensuel - ${currentMonth}</h1>
-                    <div class="stats">
-                        <h2>Statistiques du Mois</h2>
-                        <p><strong>Total actions:</strong> ${monthActions.length}</p>
-                        <p><strong>Terminées:</strong> ${monthActions.filter(a => a.statut === 'termine').length}</p>
-                        <p><strong>En cours:</strong> ${monthActions.filter(a => a.statut === 'en-cours').length}</p>
-                        <p><strong>En retard:</strong> ${monthActions.filter(a => checkIfOverdue(a)).length}</p>
-                    </div>
-                    <h2>Détail des Actions</h2>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Ministère</th>
-                                <th>Action</th>
-                                <th>Responsable</th>
-                                <th>Statut</th>
-                            </tr>
-                        </thead>
-                        <tbody>`;
-            
-            monthActions.forEach(action => {
-                htmlContent += `
-                    <tr>
-                        <td>${action.ministere}</td>
-                        <td>${action.action}</td>
-                        <td>${action.responsable}</td>
-                        <td>${getStatusLabel(action.statut)}</td>
-                    </tr>`;
-            });
-            
-            htmlContent += `
-                        </tbody>
-                    </table>
-                </body>
-                </html>`;
-            
-            printWindow.document.write(htmlContent);
-            printWindow.document.close();
-            setTimeout(() => printWindow.print(), 500);
+            exportToPDF();
         }
 
         function generateMinistryReport() {
-            const ministryStats = {};
-            actions.forEach(action => {
-                if (!ministryStats[action.ministere]) {
-                    ministryStats[action.ministere] = {
-                        total: 0,
-                        completed: 0,
-                        inProgress: 0,
-                        overdue: 0,
-                        actions: []
-                    };
-                }
-                ministryStats[action.ministere].total++;
-                ministryStats[action.ministere].actions.push(action);
-                if (action.statut === 'termine') ministryStats[action.ministere].completed++;
-                if (action.statut === 'en-cours') ministryStats[action.ministere].inProgress++;
-                if (checkIfOverdue(action) && action.statut !== 'termine') ministryStats[action.ministere].overdue++;
-            });
-            
-            const printWindow = window.open('', '_blank');
-            
-            let htmlContent = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Rapport par Ministère</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; padding: 40px; }
-                        h1 { color: #1E3A8A; }
-                        h2 { color: #14B8A6; margin-top: 30px; }
-                        .ministry-section { margin-bottom: 40px; page-break-inside: avoid; }
-                        .stats { background: #E0F2FE; padding: 15px; border-radius: 10px; margin: 15px 0; }
-                        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-                        th { background: #1E3A8A; color: white; padding: 8px; }
-                        td { padding: 6px; border-bottom: 1px solid #ddd; }
-                    </style>
-                </head>
-                <body>
-                    <h1>Rapport par Ministère</h1>
-                    <p>Date: ${new Date().toLocaleDateString('fr-FR')}</p>`;
-            
-            Object.entries(ministryStats).forEach(([ministry, stats]) => {
-                htmlContent += `
-                    <div class="ministry-section">
-                        <h2>${ministry}</h2>
-                        <div class="stats">
-                            <p><strong>Total:</strong> ${stats.total} | 
-                               <strong>Terminées:</strong> ${stats.completed} | 
-                               <strong>En cours:</strong> ${stats.inProgress} | 
-                               <strong>En retard:</strong> ${stats.overdue}</p>
-                        </div>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Action</th>
-                                    <th>Responsable</th>
-                                    <th>Date Fin</th>
-                                    <th>Statut</th>
-                                </tr>
-                            </thead>
-                            <tbody>`;
-                
-                stats.actions.forEach(action => {
-                    htmlContent += `
-                        <tr>
-                            <td>${action.action}</td>
-                            <td>${action.responsable}</td>
-                            <td>${formatDate(action.dateFin)}</td>
-                            <td>${getStatusLabel(action.statut)}</td>
-                        </tr>`;
-                });
-                
-                htmlContent += `
-                            </tbody>
-                        </table>
-                    </div>`;
-            });
-            
-            htmlContent += `
-                </body>
-                </html>`;
-            
-            printWindow.document.write(htmlContent);
-            printWindow.document.close();
-            setTimeout(() => printWindow.print(), 500);
+            exportToPDF();
         }
 
         function generatePerformanceReport() {
-            const total = actions.length;
-            const completed = actions.filter(a => a.statut === 'termine').length;
-            const efficiency = total > 0 ? Math.round((completed / total) * 100) : 0;
-            const highPriority = actions.filter(a => a.priorite === 'haute').length;
-            
-            const printWindow = window.open('', '_blank');
-            
-            let htmlContent = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Rapport de Performance</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; padding: 40px; }
-                        h1 { color: #1E3A8A; }
-                        .metric { background: linear-gradient(135deg, #E0F2FE 0%, #F0F9FF 100%); 
-                                  padding: 20px; border-radius: 10px; margin: 20px 0; }
-                        .metric h3 { color: #14B8A6; margin-bottom: 10px; }
-                        .metric .value { font-size: 36px; font-weight: bold; color: #1E3A8A; }
-                        .chart { margin: 30px 0; }
-                    </style>
-                </head>
-                <body>
-                    <h1>Rapport de Performance</h1>
-                    <p>Date: ${new Date().toLocaleDateString('fr-FR')}</p>
-                    
-                    <div class="metric">
-                        <h3>Efficacité Globale</h3>
-                        <div class="value">${efficiency}%</div>
-                        <p>${completed} actions terminées sur ${total}</p>
-                    </div>
-                    
-                    <div class="metric">
-                        <h3>Actions Prioritaires</h3>
-                        <div class="value">${highPriority}</div>
-                        <p>Actions de haute priorité</p>
-                    </div>
-                    
-                    <div class="metric">
-                        <h3>Taux de Retard</h3>
-                        <div class="value">${actions.filter(a => checkIfOverdue(a)).length}</div>
-                        <p>Actions en retard</p>
-                    </div>
-                    
-                    <h2>Performance par Responsable</h2>
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <thead>
-                            <tr style="background: #1E3A8A; color: white;">
-                                <th style="padding: 10px;">Responsable</th>
-                                <th style="padding: 10px;">Actions Assignées</th>
-                                <th style="padding: 10px;">Terminées</th>
-                                <th style="padding: 10px;">Taux de Completion</th>
-                            </tr>
-                        </thead>
-                        <tbody>`;
-            
-            const responsableStats = {};
-            actions.forEach(action => {
-                if (!responsableStats[action.responsable]) {
-                    responsableStats[action.responsable] = { total: 0, completed: 0 };
-                }
-                responsableStats[action.responsable].total++;
-                if (action.statut === 'termine') {
-                    responsableStats[action.responsable].completed++;
-                }
-            });
-            
-            Object.entries(responsableStats).forEach(([responsable, stats]) => {
-                const rate = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
-                htmlContent += `
-                    <tr>
-                        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${responsable}</td>
-                        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${stats.total}</td>
-                        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${stats.completed}</td>
-                        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${rate}%</td>
-                    </tr>`;
-            });
-            
-            htmlContent += `
-                        </tbody>
-                    </table>
-                </body>
-                </html>`;
-            
-            printWindow.document.write(htmlContent);
-            printWindow.document.close();
-            setTimeout(() => printWindow.print(), 500);
+            exportToPDF();
         }
 
         // Paramètres
@@ -2339,6 +2366,208 @@
                 closeMinistryModal();
             }
         });
+
+	// Ajouter après le chargement de l'utilisateur
+if (currentUser.role === 'admin') {
+    // Ajouter le menu Administration
+    const navMenu = document.querySelector('.nav-menu');
+    const adminMenuItem = document.createElement('a');
+    adminMenuItem.className = 'nav-item';
+    adminMenuItem.onclick = () => showSection('administration');
+    adminMenuItem.innerHTML = `
+        <span class="nav-icon">👑</span>
+        <span class="nav-text">Administration</span>
+    `;
+    navMenu.appendChild(adminMenuItem);
+    
+    // Charger les utilisateurs en attente
+    loadPendingUsers();
+}
+
+// Fonctions pour l'administration
+async function loadPendingUsers() {
+    try {
+        const response = await fetch(`${API_URL}/users/pending`, {
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            
+            // Mettre à jour les stats
+            document.getElementById('pendingUsers').textContent = data.count;
+            
+            // Afficher l'alerte si des utilisateurs sont en attente
+            if (data.count > 0) {
+                document.getElementById('pendingUsersAlert').style.display = 'block';
+            }
+            
+            // Afficher les utilisateurs en attente
+            const tbody = document.getElementById('pendingUsersTable');
+            tbody.innerHTML = '';
+            
+            data.users.forEach(user => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${user.name}</td>
+                    <td>${user.email}</td>
+                    <td>${user.ministry}</td>
+                    <td>${new Date(user.created_at).toLocaleDateString('fr-FR')}</td>
+                    <td>
+                        <button class="btn btn-success" onclick="activateUser(${user.id})">✅ Activer</button>
+                        <button class="btn btn-danger" onclick="deleteUser(${user.id})">❌ Refuser</button>
+                    </td>
+                `;
+            });
+        }
+    } catch (error) {
+        console.error('Erreur chargement utilisateurs en attente:', error);
+    }
+    
+    // Charger tous les utilisateurs
+    loadAllUsers();
+}
+
+async function loadAllUsers() {
+    try {
+        const response = await fetch(`${API_URL}/users`, {
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        
+        if (response.ok) {
+            const users = await response.json();
+            
+            // Mettre à jour les stats
+            document.getElementById('totalUsers').textContent = users.length;
+            document.getElementById('activeUsers').textContent = users.filter(u => u.is_active).length;
+            
+            // Afficher tous les utilisateurs
+            const tbody = document.getElementById('allUsersTable');
+            tbody.innerHTML = '';
+            
+            users.forEach(user => {
+                const row = tbody.insertRow();
+                const statusBadge = user.is_active 
+                    ? '<span class="status-badge termine">Actif</span>' 
+                    : '<span class="status-badge en-retard">Inactif</span>';
+                
+                const roleBadge = user.role === 'admin' 
+                    ? '<span class="status-badge nouveau">Admin</span>' 
+                    : '<span class="status-badge">User</span>';
+                
+                row.innerHTML = `
+                    <td>${user.name}</td>
+                    <td>${user.email}</td>
+                    <td>${user.ministry}</td>
+                    <td>${roleBadge}</td>
+                    <td>${statusBadge}</td>
+                    <td>${user.last_login ? new Date(user.last_login).toLocaleDateString('fr-FR') : '-'}</td>
+                    <td>
+                        ${user.id !== currentUser.id ? `
+                            ${!user.is_active ? `<button class="btn-icon edit" onclick="activateUser(${user.id})">✅</button>` : ''}
+                            ${user.is_active ? `<button class="btn-icon" onclick="deactivateUser(${user.id})">🔒</button>` : ''}
+                            ${user.role === 'user' ? `<button class="btn-icon" onclick="makeAdmin(${user.id})">👑</button>` : ''}
+                            <button class="btn-icon delete" onclick="deleteUser(${user.id})">🗑️</button>
+                        ` : '<span style="color: #7f8c8d;">Vous</span>'}
+                    </td>
+                `;
+            });
+        }
+    } catch (error) {
+        console.error('Erreur chargement utilisateurs:', error);
+    }
+}
+
+async function activateUser(userId) {
+    if (confirm('Activer cet utilisateur ?')) {
+        try {
+            const response = await fetch(`${API_URL}/users/${userId}/activate`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+            
+            if (response.ok) {
+                showAlert('Utilisateur activé avec succès', 'success');
+                loadPendingUsers();
+            } else {
+                const error = await response.json();
+                showAlert(error.error || 'Erreur lors de l\'activation', 'error');
+            }
+        } catch (error) {
+            console.error('Erreur activation:', error);
+            showAlert('Erreur de connexion', 'error');
+        }
+    }
+}
+
+async function deactivateUser(userId) {
+    if (confirm('Désactiver cet utilisateur ?')) {
+        try {
+            const response = await fetch(`${API_URL}/users/${userId}/deactivate`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+            
+            if (response.ok) {
+                showAlert('Utilisateur désactivé', 'warning');
+                loadPendingUsers();
+            }
+        } catch (error) {
+            console.error('Erreur désactivation:', error);
+        }
+    }
+}
+
+async function deleteUser(userId) {
+    if (confirm('Supprimer définitivement cet utilisateur ?')) {
+        try {
+            const response = await fetch(`${API_URL}/users/${userId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+            
+            if (response.ok) {
+                showAlert('Utilisateur supprimé', 'warning');
+                loadPendingUsers();
+            }
+        } catch (error) {
+            console.error('Erreur suppression:', error);
+        }
+    }
+}
+
+async function makeAdmin(userId) {
+    if (confirm('Donner les droits administrateur à cet utilisateur ?')) {
+        try {
+            const response = await fetch(`${API_URL}/users/${userId}/role`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({ role: 'admin' })
+            });
+            
+            if (response.ok) {
+                showAlert('Droits administrateur accordés', 'success');
+                loadPendingUsers();
+            }
+        } catch (error) {
+            console.error('Erreur modification rôle:', error);
+        }
+    }
+}
+
     </script>
 </body>
 </html>
