@@ -25,12 +25,14 @@ try {
     const teamsRoutes = require('./routes/teams');
     const usersRoutes = require('./routes/users');
     const ministriesRoutes = require('./routes/ministries');
+    const permissionsRoutes = require('./routes/permissions');
     
     app.use('/api/auth', authRoutes);
     app.use('/api/actions', actionsRoutes);
     app.use('/api/teams', teamsRoutes);
     app.use('/api/users', usersRoutes);
     app.use('/api/ministries', ministriesRoutes);
+    app.use('/api/permissions', permissionsRoutes);
 
     console.log('✅ Routes chargées avec succès'); // AJOUTER CETTE LIGNE
 } catch (err) {

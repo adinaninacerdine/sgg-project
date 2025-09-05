@@ -580,58 +580,6 @@
             box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
         }
 
-        /* Quick Actions Bar */
-        .quick-actions {
-            position: fixed;
-            top: 50%;
-            right: 0;
-            transform: translateY(-50%);
-            background: white;
-            border-radius: 20px 0 0 20px;
-            padding: 20px 10px;
-            box-shadow: -5px 0 20px rgba(0,0,0,0.1);
-            z-index: 99;
-        }
-
-        .quick-action-btn {
-            display: block;
-            width: 40px;
-            height: 40px;
-            margin: 10px 0;
-            border: none;
-            border-radius: 10px;
-            background: var(--bg);
-            cursor: pointer;
-            transition: all 0.3s;
-            position: relative;
-        }
-
-        .quick-action-btn:hover {
-            background: var(--primary);
-            color: white;
-            transform: scale(1.1);
-        }
-
-        .tooltip {
-            position: absolute;
-            right: 50px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 12px;
-            white-space: nowrap;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s;
-        }
-
-        .quick-action-btn:hover .tooltip {
-            opacity: 1;
-        }
-
         /* Alert */
         .alert {
             position: fixed;
@@ -723,6 +671,36 @@
             height: 300px;
         }
 
+        /* File Upload */
+        .file-upload-area {
+            border: 2px dashed var(--sky-blue);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            background: var(--bg);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-upload-area:hover {
+            background: white;
+            border-color: var(--navy);
+        }
+
+        .file-list {
+            margin-top: 10px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px;
+            background: white;
+            border-radius: 5px;
+            margin-top: 5px;
+        }
+
         /* Mobile Responsive */
         @media (max-width: 768px) {
             .sidebar {
@@ -768,8 +746,7 @@
         @media print {
             .sidebar,
             .header-actions,
-            .fab,
-            .quick-actions {
+            .fab {
                 display: none !important;
             }
 
@@ -830,9 +807,6 @@
                 <div class="header-actions">
                     <span id="userInfo"></span>
                     <button class="btn btn-secondary" onclick="logout()">🚪 Déconnexion</button>
-                    <button class="btn btn-success" onclick="exportToExcel()">📥 Export Excel</button>
-                    <button class="btn btn-secondary" onclick="exportToPDF()">📄 Export PDF</button>
-                    <button class="btn btn-primary" onclick="backupData()">💾 Sauvegarder</button>
                 </div>
             </header>
 
@@ -917,7 +891,8 @@
                                 <th>Date Début</th>
                                 <th>Date Fin</th>
                                 <th>Statut</th>
-                                <th>Progrès</th>
+                                <th>Observations</th>
+                                <th>Dossier</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -1058,10 +1033,6 @@
             			</div>
         		</div>
 
-        		<div id="pendingUsersAlert" class="alert warning" style="display: none; position: relative; margin: 20px 0;">
-            			<strong>⚠️ Utilisateurs en attente de validation</strong>
-        		</div>
-
         		<h3>Utilisateurs en attente</h3>
         		<table>
             			<thead>
@@ -1085,6 +1056,7 @@
                     				<th>Ministère</th>
                     				<th>Rôle</th>
                     				<th>Statut</th>
+                    				<th>Permissions</th>
                     				<th>Dernière connexion</th>
                     				<th>Actions</th>
                 			</tr>
@@ -1098,30 +1070,6 @@
 
         <!-- FAB -->
         <button class="fab" onclick="openActionModal()">+</button>
-
-        <!-- Quick Actions Bar -->
-        <div class="quick-actions">
-            <button class="quick-action-btn" onclick="openActionModal()">
-                <span>➕</span>
-                <span class="tooltip">Nouvelle Action</span>
-            </button>
-            <button class="quick-action-btn" onclick="openTeamModal()">
-                <span>👤</span>
-                <span class="tooltip">Nouveau Membre</span>
-            </button>
-            <button class="quick-action-btn" onclick="openMinistryModal()">
-                <span>🏢</span>
-                <span class="tooltip">Nouveau Ministère</span>
-            </button>
-            <button class="quick-action-btn" onclick="exportToPDF()">
-                <span>📄</span>
-                <span class="tooltip">Export PDF</span>
-            </button>
-            <button class="quick-action-btn" onclick="window.print()">
-                <span>🖨️</span>
-                <span class="tooltip">Imprimer</span>
-            </button>
-        </div>
 
         <!-- Modal Action -->
         <div class="modal" id="actionModal">
@@ -1174,6 +1122,18 @@
                             <option value="en-cours">En Cours</option>
                             <option value="termine">Terminé</option>
                         </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Observations</label>
+                        <textarea class="form-textarea" id="observations" placeholder="Ajouter des observations..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Dossier de clôture</label>
+                        <div class="file-upload-area" onclick="document.getElementById('closureFiles').click()">
+                            <p>📁 Cliquez ou glissez des fichiers ici</p>
+                            <input type="file" id="closureFiles" multiple style="display: none;" onchange="handleFileSelect(event)">
+                        </div>
+                        <div id="fileList" class="file-list"></div>
                     </div>
                     <div class="form-actions">
                         <button type="button" class="btn btn-secondary" onclick="closeActionModal()">Annuler</button>
@@ -1250,6 +1210,77 @@
                 </form>
             </div>
         </div>
+
+        <!-- Modal Permissions -->
+        <div class="modal" id="permissionsModal">
+            <div class="modal-content" style="max-width: 800px;">
+                <div class="modal-header">
+                    <h2 class="modal-title">Gérer les Permissions</h2>
+                    <button class="close-modal" onclick="closePermissionsModal()">×</button>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Utilisateur: <strong id="permUserName"></strong></label>
+                    <input type="hidden" id="permUserId">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Appliquer un profil prédéfini</label>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-secondary" onclick="applyPermissionProfile('reader')">👁️ Lecteur</button>
+                        <button class="btn btn-secondary" onclick="applyPermissionProfile('contributor')">✏️ Contributeur</button>
+                        <button class="btn btn-secondary" onclick="applyPermissionProfile('manager')">👔 Gestionnaire</button>
+                        <button class="btn btn-danger" onclick="applyPermissionProfile('admin')">👑 Admin Total</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="applyToAllMinistries" onchange="toggleMinistrySelection()">
+                        Appliquer à tous les ministères
+                    </label>
+                </div>
+
+                <div id="ministrySelectionDiv">
+                    <label class="form-label">Sélectionner les ministères</label>
+                    <div id="ministryCheckboxList" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 5px;">
+                        <!-- Sera rempli dynamiquement -->
+                    </div>
+                </div>
+
+                <h4 style="margin-top: 20px;">Permissions détaillées</h4>
+                <table style="width: 100%;">
+                    <tr>
+                        <td><strong>Actions</strong></td>
+                        <td>
+                            <label><input type="checkbox" id="perm_view_actions" checked> Voir</label>
+                            <label><input type="checkbox" id="perm_create_actions"> Créer</label>
+                            <label><input type="checkbox" id="perm_edit_actions"> Modifier</label>
+                            <label><input type="checkbox" id="perm_delete_actions"> Supprimer</label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Équipe</strong></td>
+                        <td>
+                            <label><input type="checkbox" id="perm_view_team" checked> Voir</label>
+                            <label><input type="checkbox" id="perm_manage_team"> Gérer</label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Rapports</strong></td>
+                        <td>
+                            <label><input type="checkbox" id="perm_view_reports" checked> Voir</label>
+                            <label><input type="checkbox" id="perm_export_data"> Exporter</label>
+                        </td>
+                    </tr>
+                </table>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closePermissionsModal()">Annuler</button>
+                    <button type="button" class="btn btn-danger" onclick="revokeAllPermissions()">🗑️ Révoquer tout</button>
+                    <button type="button" class="btn btn-primary" onclick="savePermissions()">💾 Enregistrer</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -1268,6 +1299,7 @@
         let ministries = [];
         let currentFilter = 'all';
         let editingIndex = null;
+        let selectedFiles = [];
 
         // Vérification de l'authentification au chargement
         window.addEventListener('DOMContentLoaded', async function() {
@@ -1307,31 +1339,49 @@
             // Charger les données depuis l'API
             await loadDataFromAPI();
             
-            // Charger les ministères par défaut si vide
-            if (ministries.length === 0) {
-                ministries = [
-                    { name: 'Intérieur', abbrev: 'MI' },
-                    { name: 'Économie', abbrev: 'ME' },
-                    { name: 'Santé', abbrev: 'MS' },
-                    { name: 'Éducation', abbrev: 'MEN' },
-                    { name: 'Justice', abbrev: 'MJ' },
-                    { name: 'Transport', abbrev: 'MT' },
-                    { name: 'Agriculture', abbrev: 'MA' },
-                    { name: 'Environnement', abbrev: 'MEV' }
-                ];
-            }
-            
             updateDashboard();
             renderActions();
             renderTeam();
             renderMinistries();
             populateDropdowns();
             initCharts();
+
+            // Admin features
+            if (currentUser.role === 'admin') {
+                // Ajouter le menu Administration
+                const navMenu = document.querySelector('.nav-menu');
+                const adminMenuItem = document.createElement('a');
+                adminMenuItem.className = 'nav-item';
+                adminMenuItem.onclick = () => showSection('administration');
+                adminMenuItem.innerHTML = `
+                    <span class="nav-icon">👑</span>
+                    <span class="nav-text">Administration</span>
+                `;
+                navMenu.appendChild(adminMenuItem);
+                
+                // Charger les utilisateurs en attente
+                loadPendingUsers();
+            }
         });
 
-        // Fonction pour charger les données depuis l'API
+        // Fonction pour charger les données depuis l'API - MODIFIÉE
         async function loadDataFromAPI() {
             try {
+                // NOUVEAU : Charger les ministères depuis l'API
+                const ministriesResponse = await fetch(`${API_URL}/ministries`);
+                if (ministriesResponse.ok) {
+                    const ministriesData = await ministriesResponse.json();
+                    ministries = ministriesData.map(ministry => ({
+                        id: ministry.id,
+                        name: ministry.name,
+                        abbrev: ministry.abbrev || '',
+                        description: ministry.description || ''
+                    }));
+                    console.log('✅ Ministères chargés depuis la BDD:', ministries);
+                } else {
+                    console.error('Erreur chargement ministères depuis API');
+                }
+
                 // Charger les actions
                 const actionsResponse = await fetch(`${API_URL}/actions`, {
                     headers: {
@@ -1350,6 +1400,8 @@
                         dateDebut: action.start_date,
                         dateFin: action.end_date,
                         statut: action.status,
+                        observations: action.observations || '',
+                        closureFiles: action.closure_files || [],
                         dateCreation: action.created_at
                     }));
                 }
@@ -1396,7 +1448,34 @@
             window.location.href = './login.html';
         }
 
-        // Gestion des formulaires avec API
+        // Gestion des fichiers
+        function handleFileSelect(event) {
+            const files = Array.from(event.target.files);
+            selectedFiles = [...selectedFiles, ...files];
+            displayFileList();
+        }
+
+        function displayFileList() {
+            const fileListDiv = document.getElementById('fileList');
+            fileListDiv.innerHTML = '';
+            
+            selectedFiles.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <span>📄 ${file.name}</span>
+                    <button onclick="removeFile(${index})" class="btn-icon delete">×</button>
+                `;
+                fileListDiv.appendChild(fileItem);
+            });
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            displayFileList();
+        }
+
+        // Gestion des formulaires avec API - MODIFIÉ
         document.getElementById('actionForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -1408,7 +1487,9 @@
                 priority: document.getElementById('priorite').value,
                 start_date: document.getElementById('dateDebut').value,
                 end_date: document.getElementById('dateFin').value,
-                status: document.getElementById('statut').value
+                status: document.getElementById('statut').value,
+                observations: document.getElementById('observations').value,
+                closure_files: selectedFiles.map(f => f.name) // Pour l'instant on stocke juste les noms
             };
 
             try {
@@ -1466,33 +1547,50 @@
             };
 
             try {
-                const response = await fetch(`${API_URL}/teams`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify(memberData)
-                });
+                let response;
+                
+                if (editingIndex !== null && teamMembers[editingIndex]?.id) {
+                    // Mise à jour
+                    const memberId = teamMembers[editingIndex].id;
+                    response = await fetch(`${API_URL}/teams/${memberId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify(memberData)
+                    });
+                } else {
+                    // Création
+                    response = await fetch(`${API_URL}/teams`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify(memberData)
+                    });
+                }
 
                 if (response.ok) {
                     await loadDataFromAPI();
                     closeTeamModal();
                     renderTeam();
                     populateDropdowns();
-                    showAlert('Membre ajouté avec succès!', 'success');
+                    showAlert(editingIndex !== null ? 'Membre modifié avec succès!' : 'Membre ajouté avec succès!', 'success');
                 } else {
                     const error = await response.json();
-                    showAlert(error.error || 'Erreur lors de l\'ajout', 'error');
+                    showAlert(error.error || 'Erreur lors de l\'opération', 'error');
                 }
             } catch (error) {
-                console.error('Erreur ajout membre:', error);
+                console.error('Erreur opération membre:', error);
                 // Fallback en mode local
                 saveMemberLocally(memberData);
             }
         });
 
-        document.getElementById('ministryForm').addEventListener('submit', function(e) {
+        // MODIFIÉ : Formulaire ministère pour utiliser l'API
+        document.getElementById('ministryForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const ministry = {
@@ -1501,12 +1599,56 @@
                 description: document.getElementById('ministryDescription').value || ''
             };
 
-            ministries.push(ministry);
-            saveToLocalStorage();
-            closeMinistryModal();
-            renderMinistries();
-            populateDropdowns();
-            showAlert('Ministère ajouté avec succès!', 'success');
+            try {
+                let response;
+                
+                if (editingIndex !== null && ministries[editingIndex]?.id) {
+                    // Mise à jour
+                    const ministryId = ministries[editingIndex].id;
+                    response = await fetch(`${API_URL}/ministries/${ministryId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify(ministry)
+                    });
+                } else {
+                    // Création
+                    response = await fetch(`${API_URL}/ministries`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify(ministry)
+                    });
+                }
+
+                if (response.ok) {
+                    await loadDataFromAPI();
+                    closeMinistryModal();
+                    renderMinistries();
+                    populateDropdowns();
+                    showAlert(editingIndex !== null ? 'Ministère modifié avec succès!' : 'Ministère ajouté avec succès!', 'success');
+                } else {
+                    const error = await response.json();
+                    showAlert(error.error || 'Erreur lors de l\'opération', 'error');
+                }
+            } catch (error) {
+                console.error('Erreur opération ministère:', error);
+                // Fallback local
+                if (editingIndex !== null) {
+                    ministries[editingIndex] = {...ministries[editingIndex], ...ministry};
+                } else {
+                    ministries.push(ministry);
+                }
+                saveToLocalStorage();
+                closeMinistryModal();
+                renderMinistries();
+                populateDropdowns();
+                showAlert('Ministère sauvegardé localement!', 'warning');
+            }
         });
 
         // Fallback pour sauvegarde locale
@@ -1521,6 +1663,8 @@
                 dateDebut: actionData.start_date,
                 dateFin: actionData.end_date,
                 statut: actionData.status,
+                observations: actionData.observations,
+                closureFiles: actionData.closure_files,
                 dateCreation: editingIndex !== null ? actions[editingIndex].dateCreation : new Date().toISOString()
             };
 
@@ -1539,21 +1683,31 @@
         }
 
         function saveMemberLocally(memberData) {
-            const member = {
-                id: generateId('TEAM'),
-                name: memberData.name,
-                position: memberData.position,
-                ministry: memberData.ministry,
-                email: memberData.email,
-                phone: memberData.phone
-            };
+            if (editingIndex !== null) {
+                // Mise à jour locale
+                teamMembers[editingIndex] = {
+                    ...teamMembers[editingIndex],
+                    ...memberData
+                };
+                editingIndex = null;
+            } else {
+                // Création locale
+                const member = {
+                    id: generateId('TEAM'),
+                    name: memberData.name,
+                    position: memberData.position,
+                    ministry: memberData.ministry,
+                    email: memberData.email,
+                    phone: memberData.phone
+                };
+                teamMembers.push(member);
+            }
 
-            teamMembers.push(member);
             saveToLocalStorage();
             closeTeamModal();
             renderTeam();
             populateDropdowns();
-            showAlert('Membre ajouté localement!', 'success');
+            showAlert('Membre sauvegardé localement!', 'success');
         }
 
         // Fonctions utilitaires
@@ -1630,7 +1784,6 @@
             
             filteredActions.forEach((action, index) => {
                 const originalIndex = actions.indexOf(action);
-                const progress = calculateProgress(action);
                 const isOverdue = checkIfOverdue(action);
                 
                 const row = tbody.insertRow();
@@ -1645,11 +1798,8 @@
                     <td><span class="status-badge ${isOverdue && action.statut !== 'termine' ? 'en-retard' : action.statut}">
                         ${isOverdue && action.statut !== 'termine' ? 'En Retard' : getStatusLabel(action.statut)}
                     </span></td>
-                    <td>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: ${progress}%"></div>
-                        </div>
-                    </td>
+                    <td>${action.observations ? action.observations.substring(0, 50) + '...' : '-'}</td>
+                    <td>${action.closureFiles && action.closureFiles.length > 0 ? `📁 ${action.closureFiles.length}` : '-'}</td>
                     <td>
                         <button class="btn-icon edit" onclick="editAction(${originalIndex})">✏️</button>
                         <button class="btn-icon delete" onclick="deleteAction(${originalIndex})">🗑️</button>
@@ -1861,9 +2011,42 @@
             document.getElementById('dateDebut').value = action.dateDebut;
             document.getElementById('dateFin').value = action.dateFin;
             document.getElementById('statut').value = action.statut;
+            document.getElementById('observations').value = action.observations || '';
+            
+            // Afficher les fichiers existants
+            selectedFiles = action.closureFiles || [];
+            displayFileList();
             
             document.querySelector('#actionModal .modal-title').textContent = 'Modifier l\'Action';
             openActionModal();
+        }
+
+        // Fonction pour éditer un membre de l'équipe
+        function editTeamMember(index) {
+            const member = teamMembers[index];
+            editingIndex = index;
+            
+            document.getElementById('teamName').value = member.name;
+            document.getElementById('teamPosition').value = member.position;
+            document.getElementById('teamMinistry').value = member.ministry;
+            document.getElementById('teamEmail').value = member.email;
+            document.getElementById('teamPhone').value = member.phone;
+            
+            document.querySelector('#teamModal .modal-title').textContent = 'Modifier le Membre';
+            openTeamModal();
+        }
+
+        // Fonction pour éditer un ministère
+        function editMinistry(index) {
+            const ministry = ministries[index];
+            editingIndex = index;
+            
+            document.getElementById('ministryName').value = ministry.name;
+            document.getElementById('ministryAbbrev').value = ministry.abbrev || '';
+            document.getElementById('ministryDescription').value = ministry.description || '';
+            
+            document.querySelector('#ministryModal .modal-title').textContent = 'Modifier le Ministère';
+            openMinistryModal();
         }
 
         async function deleteAction(index) {
@@ -1931,13 +2114,46 @@
             }
         }
 
-        function deleteMinistry(index) {
+        // MODIFIÉ : Fonction deleteMinistry pour utiliser l'API
+        async function deleteMinistry(index) {
             if (confirm('Supprimer ce ministère?')) {
-                ministries.splice(index, 1);
-                saveToLocalStorage();
-                renderMinistries();
-                populateDropdowns();
-                showAlert('Ministère supprimé', 'warning');
+                const ministry = ministries[index];
+                
+                if (ministry.id) {
+                    try {
+                        const response = await fetch(`${API_URL}/ministries/${ministry.id}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Authorization': `Bearer ${authToken}`
+                            }
+                        });
+
+                        if (response.ok) {
+                            await loadDataFromAPI();
+                            renderMinistries();
+                            populateDropdowns();
+                            showAlert('Ministère supprimé', 'warning');
+                        } else {
+                            const error = await response.json();
+                            showAlert(error.error || 'Erreur lors de la suppression', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Erreur suppression ministère:', error);
+                        // Fallback local
+                        ministries.splice(index, 1);
+                        saveToLocalStorage();
+                        renderMinistries();
+                        populateDropdowns();
+                        showAlert('Ministère supprimé localement', 'warning');
+                    }
+                } else {
+                    // Ministère local uniquement
+                    ministries.splice(index, 1);
+                    saveToLocalStorage();
+                    renderMinistries();
+                    populateDropdowns();
+                    showAlert('Ministère supprimé', 'warning');
+                }
             }
         }
 
@@ -1951,6 +2167,8 @@
             document.getElementById('actionModal').classList.remove('active');
             document.getElementById('actionForm').reset();
             editingIndex = null;
+            selectedFiles = [];
+            document.getElementById('fileList').innerHTML = '';
             document.querySelector('#actionModal .modal-title').textContent = 'Nouvelle Action';
         }
 
@@ -1962,6 +2180,8 @@
         function closeTeamModal() {
             document.getElementById('teamModal').classList.remove('active');
             document.getElementById('teamForm').reset();
+            editingIndex = null;
+            document.querySelector('#teamModal .modal-title').textContent = 'Nouveau Membre';
         }
 
         function openMinistryModal() {
@@ -1971,6 +2191,8 @@
         function closeMinistryModal() {
             document.getElementById('ministryModal').classList.remove('active');
             document.getElementById('ministryForm').reset();
+            editingIndex = null;
+            document.querySelector('#ministryModal .modal-title').textContent = 'Nouveau Ministère';
         }
 
         // Navigation
@@ -2028,7 +2250,7 @@
             excelContent += '<tr style="background-color: #1E3A8A; color: white; font-weight: bold;">';
             excelContent += '<th>ID</th><th>Ministère</th><th>Action</th><th>Description</th>';
             excelContent += '<th>Responsable</th><th>Priorité</th><th>Date Début</th>';
-            excelContent += '<th>Date Fin</th><th>Statut</th></tr>';
+            excelContent += '<th>Date Fin</th><th>Statut</th><th>Observations</th></tr>';
             
             actions.forEach(action => {
                 excelContent += '<tr>';
@@ -2041,6 +2263,7 @@
                 excelContent += `<td>${action.dateDebut}</td>`;
                 excelContent += `<td>${action.dateFin}</td>`;
                 excelContent += `<td>${getStatusLabel(action.statut)}</td>`;
+                excelContent += `<td>${action.observations || ''}</td>`;
                 excelContent += '</tr>';
             });
             
@@ -2057,12 +2280,12 @@
         }
 
         function exportToCSV() {
-            let csvContent = 'ID,Ministère,Action,Description,Responsable,Priorité,Date Début,Date Fin,Statut\n';
+            let csvContent = 'ID,Ministère,Action,Description,Responsable,Priorité,Date Début,Date Fin,Statut,Observations\n';
             
             actions.forEach(action => {
                 csvContent += `"${action.id}","${action.ministere}","${action.action}",`;
                 csvContent += `"${action.description || ''}","${action.responsable}",`;
-                csvContent += `"${action.priorite}","${action.dateDebut}","${action.dateFin}","${action.statut}"\n`;
+                csvContent += `"${action.priorite}","${action.dateDebut}","${action.dateFin}","${action.statut}","${action.observations || ''}"\n`;
             });
             
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -2181,6 +2404,7 @@
                                     dateDebut: values[6]?.replace(/"/g, '').trim(),
                                     dateFin: values[7]?.replace(/"/g, '').trim(),
                                     statut: values[8]?.replace(/"/g, '').trim() || 'nouveau',
+                                    observations: values[9]?.replace(/"/g, '').trim() || '',
                                     dateCreation: new Date().toISOString()
                                 };
                                 actions.push(action);
@@ -2348,6 +2572,424 @@
             }, 3000);
         }
 
+        // Administration
+        async function loadPendingUsers() {
+            try {
+                const response = await fetch(`${API_URL}/users/pending`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Mettre à jour les stats
+                    document.getElementById('pendingUsers').textContent = data.count;
+                    
+                    // Afficher les utilisateurs en attente
+                    const tbody = document.getElementById('pendingUsersTable');
+                    tbody.innerHTML = '';
+                    
+                    data.users.forEach(user => {
+                        const row = tbody.insertRow();
+                        row.innerHTML = `
+                            <td>${user.name}</td>
+                            <td>${user.email}</td>
+                            <td>${user.ministry}</td>
+                            <td>${new Date(user.created_at).toLocaleDateString('fr-FR')}</td>
+                            <td>
+                                <button class="btn btn-success" onclick="activateUser(${user.id})">✅ Activer</button>
+                                <button class="btn btn-danger" onclick="deleteUser(${user.id})">❌ Refuser</button>
+                            </td>
+                        `;
+                    });
+                }
+            } catch (error) {
+                console.error('Erreur chargement utilisateurs en attente:', error);
+            }
+            
+            // Charger tous les utilisateurs
+            loadAllUsers();
+        }
+
+        async function loadAllUsers() {
+            try {
+                const response = await fetch(`${API_URL}/users`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const users = await response.json();
+                    
+                    // Mettre à jour les stats
+                    document.getElementById('totalUsers').textContent = users.length;
+                    document.getElementById('activeUsers').textContent = users.filter(u => u.is_active).length;
+                    
+                    // Afficher tous les utilisateurs
+                    const tbody = document.getElementById('allUsersTable');
+                    tbody.innerHTML = '';
+                    
+                    users.forEach(user => {
+                        const row = tbody.insertRow();
+                        const statusBadge = user.is_active 
+                            ? '<span class="status-badge termine">Actif</span>' 
+                            : '<span class="status-badge en-retard">Inactif</span>';
+                        
+                        const roleBadge = user.role === 'admin' 
+                            ? '<span class="status-badge nouveau">Admin</span>' 
+                            : '<span class="status-badge">User</span>';
+                        
+                        // Badge permissions
+                        const permissionsBadge = user.is_super_admin 
+                            ? '<span class="status-badge nouveau">Super Admin</span>'
+                            : '<span class="status-badge">Standard</span>';
+                        
+                        row.innerHTML = `
+                            <td>${user.name}</td>
+                            <td>${user.email}</td>
+                            <td>${user.ministry}</td>
+                            <td>${roleBadge}</td>
+                            <td>${statusBadge}</td>
+                            <td>${permissionsBadge}</td>
+                            <td>${user.last_login ? new Date(user.last_login).toLocaleDateString('fr-FR') : '-'}</td>
+                            <td>
+                                ${user.id !== currentUser.id ? `
+                                    <button class="btn-icon" onclick="openPermissionsModal(${user.id}, '${user.name}')">🔐</button>
+                                    ${!user.is_active ? `<button class="btn-icon edit" onclick="activateUser(${user.id})">✅</button>` : ''}
+                                    ${user.is_active ? `<button class="btn-icon" onclick="deactivateUser(${user.id})">🔒</button>` : ''}
+                                    ${user.role === 'user' ? `<button class="btn-icon" onclick="makeAdmin(${user.id})">👑</button>` : ''}
+                                    <button class="btn-icon delete" onclick="deleteUser(${user.id})">🗑️</button>
+                                ` : '<span style="color: #7f8c8d;">Vous</span>'}
+                            </td>
+                        `;
+                    });
+                }
+            } catch (error) {
+                console.error('Erreur chargement utilisateurs:', error);
+            }
+        }
+
+        // Fonctions de gestion des permissions
+        async function openPermissionsModal(userId, userName) {
+            document.getElementById('permUserId').value = userId;
+            document.getElementById('permUserName').textContent = userName;
+            
+            // Charger les ministères disponibles
+            const checkboxList = document.getElementById('ministryCheckboxList');
+            checkboxList.innerHTML = '';
+            
+            ministries.forEach(ministry => {
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <label>
+                        <input type="checkbox" class="ministry-checkbox" value="${ministry.id}" data-name="${ministry.name}">
+                        ${ministry.name} ${ministry.abbrev ? `(${ministry.abbrev})` : ''}
+                    </label>
+                `;
+                checkboxList.appendChild(div);
+            });
+            
+            // Charger les permissions existantes
+            try {
+                const response = await fetch(`${API_URL}/permissions/user/${userId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Si super admin, cocher toutes les cases
+                    if (data.is_super_admin) {
+                        document.getElementById('applyToAllMinistries').checked = true;
+                        toggleMinistrySelection();
+                        // Cocher toutes les permissions
+                        document.querySelectorAll('[id^="perm_"]').forEach(checkbox => {
+                            checkbox.checked = true;
+                        });
+                    } else {
+                        // Appliquer les permissions par ministère
+                        data.permissions.forEach(perm => {
+                            if (perm.ministry_id) {
+                                const checkbox = document.querySelector(`.ministry-checkbox[value="${perm.ministry_id}"]`);
+                                if (checkbox && (perm.can_view_actions || perm.can_create_actions)) {
+                                    checkbox.checked = true;
+                                }
+                            }
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur chargement permissions:', error);
+            }
+            
+            document.getElementById('permissionsModal').classList.add('active');
+        }
+
+        function closePermissionsModal() {
+            document.getElementById('permissionsModal').classList.remove('active');
+        }
+
+        function toggleMinistrySelection() {
+            const applyToAll = document.getElementById('applyToAllMinistries').checked;
+            const ministryDiv = document.getElementById('ministrySelectionDiv');
+            
+            if (applyToAll) {
+                ministryDiv.style.display = 'none';
+                // Cocher tous les ministères
+                document.querySelectorAll('.ministry-checkbox').forEach(cb => cb.checked = true);
+            } else {
+                ministryDiv.style.display = 'block';
+            }
+        }
+
+        function applyPermissionProfile(profile) {
+            const profiles = {
+                'reader': {
+                    can_view_actions: true,
+                    can_create_actions: false,
+                    can_edit_actions: false,
+                    can_delete_actions: false,
+                    can_view_team: true,
+                    can_manage_team: false,
+                    can_view_reports: true,
+                    can_export_data: false
+                },
+                'contributor': {
+                    can_view_actions: true,
+                    can_create_actions: true,
+                    can_edit_actions: true,
+                    can_delete_actions: false,
+                    can_view_team: true,
+                    can_manage_team: false,
+                    can_view_reports: true,
+                    can_export_data: true
+                },
+                'manager': {
+                    can_view_actions: true,
+                    can_create_actions: true,
+                    can_edit_actions: true,
+                    can_delete_actions: true,
+                    can_view_team: true,
+                    can_manage_team: true,
+                    can_view_reports: true,
+                    can_export_data: true
+                },
+                'admin': {
+                    can_view_actions: true,
+                    can_create_actions: true,
+                    can_edit_actions: true,
+                    can_delete_actions: true,
+                    can_view_team: true,
+                    can_manage_team: true,
+                    can_view_reports: true,
+                    can_export_data: true
+                }
+            };
+            
+            const permissions = profiles[profile];
+            if (permissions) {
+                Object.keys(permissions).forEach(key => {
+                    const checkbox = document.getElementById('perm_' + key);
+                    if (checkbox) {
+                        checkbox.checked = permissions[key];
+                    }
+                });
+                
+                if (profile === 'admin') {
+                    document.getElementById('applyToAllMinistries').checked = true;
+                    toggleMinistrySelection();
+                }
+            }
+        }
+
+        async function savePermissions() {
+            const userId = document.getElementById('permUserId').value;
+            const applyToAll = document.getElementById('applyToAllMinistries').checked;
+            
+            const permissions = {
+                can_view_actions: document.getElementById('perm_view_actions').checked,
+                can_create_actions: document.getElementById('perm_create_actions').checked,
+                can_edit_actions: document.getElementById('perm_edit_actions').checked,
+                can_delete_actions: document.getElementById('perm_delete_actions').checked,
+                can_view_team: document.getElementById('perm_view_team').checked,
+                can_manage_team: document.getElementById('perm_manage_team').checked,
+                can_view_reports: document.getElementById('perm_view_reports').checked,
+                can_export_data: document.getElementById('perm_export_data').checked
+            };
+            
+            try {
+                if (applyToAll) {
+                    // Appliquer à tous les ministères
+                    const response = await fetch(`${API_URL}/permissions/assign`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify({
+                            user_id: userId,
+                            apply_to_all_ministries: true,
+                            permissions: permissions
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        showAlert('Permissions appliquées à tous les ministères', 'success');
+                        closePermissionsModal();
+                    }
+                } else {
+                    // Appliquer aux ministères sélectionnés
+                    const selectedMinistries = Array.from(document.querySelectorAll('.ministry-checkbox:checked'))
+                        .map(cb => cb.value);
+                    
+                    if (selectedMinistries.length === 0) {
+                        showAlert('Veuillez sélectionner au moins un ministère', 'warning');
+                        return;
+                    }
+                    
+                    for (const ministryId of selectedMinistries) {
+                        await fetch(`${API_URL}/permissions/assign`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${authToken}`
+                            },
+                            body: JSON.stringify({
+                                user_id: userId,
+                                ministry_id: ministryId,
+                                permissions: permissions
+                            })
+                        });
+                    }
+                    
+                    showAlert('Permissions mises à jour avec succès', 'success');
+                    closePermissionsModal();
+                }
+            } catch (error) {
+                console.error('Erreur sauvegarde permissions:', error);
+                showAlert('Erreur lors de la sauvegarde des permissions', 'error');
+            }
+        }
+
+        async function revokeAllPermissions() {
+            if (!confirm('Révoquer toutes les permissions de cet utilisateur ?')) return;
+            
+            const userId = document.getElementById('permUserId').value;
+            
+            try {
+                const response = await fetch(`${API_URL}/permissions/revoke`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        revoke_all: true
+                    })
+                });
+                
+                if (response.ok) {
+                    showAlert('Toutes les permissions ont été révoquées', 'warning');
+                    closePermissionsModal();
+                }
+            } catch (error) {
+                console.error('Erreur révocation permissions:', error);
+                showAlert('Erreur lors de la révocation', 'error');
+            }
+        }
+
+        async function activateUser(userId) {
+            if (confirm('Activer cet utilisateur ?')) {
+                try {
+                    const response = await fetch(`${API_URL}/users/${userId}/activate`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        showAlert('Utilisateur activé avec succès', 'success');
+                        loadPendingUsers();
+                    } else {
+                        const error = await response.json();
+                        showAlert(error.error || 'Erreur lors de l\'activation', 'error');
+                    }
+                } catch (error) {
+                    console.error('Erreur activation:', error);
+                    showAlert('Erreur de connexion', 'error');
+                }
+            }
+        }
+
+        async function deactivateUser(userId) {
+            if (confirm('Désactiver cet utilisateur ?')) {
+                try {
+                    const response = await fetch(`${API_URL}/users/${userId}/deactivate`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        showAlert('Utilisateur désactivé', 'warning');
+                        loadPendingUsers();
+                    }
+                } catch (error) {
+                    console.error('Erreur désactivation:', error);
+                }
+            }
+        }
+
+        async function deleteUser(userId) {
+            if (confirm('Supprimer définitivement cet utilisateur ?')) {
+                try {
+                    const response = await fetch(`${API_URL}/users/${userId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        showAlert('Utilisateur supprimé', 'warning');
+                        loadPendingUsers();
+                    }
+                } catch (error) {
+                    console.error('Erreur suppression:', error);
+                }
+            }
+        }
+
+        async function makeAdmin(userId) {
+            if (confirm('Donner les droits administrateur à cet utilisateur ?')) {
+                try {
+                    const response = await fetch(`${API_URL}/users/${userId}/role`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify({ role: 'admin' })
+                    });
+                    
+                    if (response.ok) {
+                        showAlert('Droits administrateur accordés', 'success');
+                        loadPendingUsers();
+                    }
+                } catch (error) {
+                    console.error('Erreur modification rôle:', error);
+                }
+            }
+        }
+
         // Raccourcis clavier
         document.addEventListener('keydown', function(e) {
             if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
@@ -2366,208 +3008,6 @@
                 closeMinistryModal();
             }
         });
-
-	// Ajouter après le chargement de l'utilisateur
-if (currentUser.role === 'admin') {
-    // Ajouter le menu Administration
-    const navMenu = document.querySelector('.nav-menu');
-    const adminMenuItem = document.createElement('a');
-    adminMenuItem.className = 'nav-item';
-    adminMenuItem.onclick = () => showSection('administration');
-    adminMenuItem.innerHTML = `
-        <span class="nav-icon">👑</span>
-        <span class="nav-text">Administration</span>
-    `;
-    navMenu.appendChild(adminMenuItem);
-    
-    // Charger les utilisateurs en attente
-    loadPendingUsers();
-}
-
-// Fonctions pour l'administration
-async function loadPendingUsers() {
-    try {
-        const response = await fetch(`${API_URL}/users/pending`, {
-            headers: {
-                'Authorization': `Bearer ${authToken}`
-            }
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
-            
-            // Mettre à jour les stats
-            document.getElementById('pendingUsers').textContent = data.count;
-            
-            // Afficher l'alerte si des utilisateurs sont en attente
-            if (data.count > 0) {
-                document.getElementById('pendingUsersAlert').style.display = 'block';
-            }
-            
-            // Afficher les utilisateurs en attente
-            const tbody = document.getElementById('pendingUsersTable');
-            tbody.innerHTML = '';
-            
-            data.users.forEach(user => {
-                const row = tbody.insertRow();
-                row.innerHTML = `
-                    <td>${user.name}</td>
-                    <td>${user.email}</td>
-                    <td>${user.ministry}</td>
-                    <td>${new Date(user.created_at).toLocaleDateString('fr-FR')}</td>
-                    <td>
-                        <button class="btn btn-success" onclick="activateUser(${user.id})">✅ Activer</button>
-                        <button class="btn btn-danger" onclick="deleteUser(${user.id})">❌ Refuser</button>
-                    </td>
-                `;
-            });
-        }
-    } catch (error) {
-        console.error('Erreur chargement utilisateurs en attente:', error);
-    }
-    
-    // Charger tous les utilisateurs
-    loadAllUsers();
-}
-
-async function loadAllUsers() {
-    try {
-        const response = await fetch(`${API_URL}/users`, {
-            headers: {
-                'Authorization': `Bearer ${authToken}`
-            }
-        });
-        
-        if (response.ok) {
-            const users = await response.json();
-            
-            // Mettre à jour les stats
-            document.getElementById('totalUsers').textContent = users.length;
-            document.getElementById('activeUsers').textContent = users.filter(u => u.is_active).length;
-            
-            // Afficher tous les utilisateurs
-            const tbody = document.getElementById('allUsersTable');
-            tbody.innerHTML = '';
-            
-            users.forEach(user => {
-                const row = tbody.insertRow();
-                const statusBadge = user.is_active 
-                    ? '<span class="status-badge termine">Actif</span>' 
-                    : '<span class="status-badge en-retard">Inactif</span>';
-                
-                const roleBadge = user.role === 'admin' 
-                    ? '<span class="status-badge nouveau">Admin</span>' 
-                    : '<span class="status-badge">User</span>';
-                
-                row.innerHTML = `
-                    <td>${user.name}</td>
-                    <td>${user.email}</td>
-                    <td>${user.ministry}</td>
-                    <td>${roleBadge}</td>
-                    <td>${statusBadge}</td>
-                    <td>${user.last_login ? new Date(user.last_login).toLocaleDateString('fr-FR') : '-'}</td>
-                    <td>
-                        ${user.id !== currentUser.id ? `
-                            ${!user.is_active ? `<button class="btn-icon edit" onclick="activateUser(${user.id})">✅</button>` : ''}
-                            ${user.is_active ? `<button class="btn-icon" onclick="deactivateUser(${user.id})">🔒</button>` : ''}
-                            ${user.role === 'user' ? `<button class="btn-icon" onclick="makeAdmin(${user.id})">👑</button>` : ''}
-                            <button class="btn-icon delete" onclick="deleteUser(${user.id})">🗑️</button>
-                        ` : '<span style="color: #7f8c8d;">Vous</span>'}
-                    </td>
-                `;
-            });
-        }
-    } catch (error) {
-        console.error('Erreur chargement utilisateurs:', error);
-    }
-}
-
-async function activateUser(userId) {
-    if (confirm('Activer cet utilisateur ?')) {
-        try {
-            const response = await fetch(`${API_URL}/users/${userId}/activate`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${authToken}`
-                }
-            });
-            
-            if (response.ok) {
-                showAlert('Utilisateur activé avec succès', 'success');
-                loadPendingUsers();
-            } else {
-                const error = await response.json();
-                showAlert(error.error || 'Erreur lors de l\'activation', 'error');
-            }
-        } catch (error) {
-            console.error('Erreur activation:', error);
-            showAlert('Erreur de connexion', 'error');
-        }
-    }
-}
-
-async function deactivateUser(userId) {
-    if (confirm('Désactiver cet utilisateur ?')) {
-        try {
-            const response = await fetch(`${API_URL}/users/${userId}/deactivate`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${authToken}`
-                }
-            });
-            
-            if (response.ok) {
-                showAlert('Utilisateur désactivé', 'warning');
-                loadPendingUsers();
-            }
-        } catch (error) {
-            console.error('Erreur désactivation:', error);
-        }
-    }
-}
-
-async function deleteUser(userId) {
-    if (confirm('Supprimer définitivement cet utilisateur ?')) {
-        try {
-            const response = await fetch(`${API_URL}/users/${userId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${authToken}`
-                }
-            });
-            
-            if (response.ok) {
-                showAlert('Utilisateur supprimé', 'warning');
-                loadPendingUsers();
-            }
-        } catch (error) {
-            console.error('Erreur suppression:', error);
-        }
-    }
-}
-
-async function makeAdmin(userId) {
-    if (confirm('Donner les droits administrateur à cet utilisateur ?')) {
-        try {
-            const response = await fetch(`${API_URL}/users/${userId}/role`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authToken}`
-                },
-                body: JSON.stringify({ role: 'admin' })
-            });
-            
-            if (response.ok) {
-                showAlert('Droits administrateur accordés', 'success');
-                loadPendingUsers();
-            }
-        } catch (error) {
-            console.error('Erreur modification rôle:', error);
-        }
-    }
-}
-
     </script>
 </body>
 </html>
