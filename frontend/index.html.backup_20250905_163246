@@ -1374,208 +1374,21 @@
 
         // Fonction pour visualiser une action
         async function viewAction(actionId) {
-            console.log('Viewing action ID:', actionId);
-            
-            // Récupérer le token depuis localStorage
-            const token = localStorage.getItem('sgg_token');
-            
-            if (!token) {
-                alert('Vous devez être connecté pour voir les détails');
-                return;
-            }
-            
             try {
                 const response = await fetch(`${API_URL}/actions/${actionId}/view`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    credentials: 'include'
+                    headers: { "Authorization": `Bearer ${authToken}` }
                 });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    console.error('Erreur lors de la récupération:', errorData);
-                    alert(`Erreur: ${errorData.error || 'Impossible de charger les détails'}`);
-                    return;
+                if (response.ok) {
+                    const action = await response.json();
+                    displayActionDetails(action);
+                    document.getElementById("viewModal").classList.add("active");
+                } else {
+                    showAlert("Erreur lors du chargement", "error");
                 }
-
-                const action = await response.json();
-                console.log('Action récupérée:', action);
-                
-                // Afficher les détails dans une modal
-                showActionDetails(action);
-                
             } catch (error) {
-                console.error('Erreur:', error);
-                alert('Erreur lors de la récupération des détails');
+                console.error("Erreur:", error);
+                showAlert("Erreur de connexion", "error");
             }
-        }
-
-        function showActionDetails(action) {
-            // Créer le contenu de la modal
-            const modalContent = `
-                <div style="padding: 20px;">
-                    <h3 style="color: #1e293b; margin-bottom: 20px;">Détails de l'Action</h3>
-                    
-                    <div style="margin-bottom: 15px;">
-                        <strong>ID:</strong> ${action.id || action.actionId || 'N/A'}
-                    </div>
-                    
-                    <div style="margin-bottom: 15px;">
-                        <strong>Ministère:</strong> ${action.ministry || action.ministere || 'N/A'}
-                    </div>
-                    
-                    <div style="margin-bottom: 15px;">
-                        <strong>Action:</strong> ${action.action_title || action.action || 'N/A'}
-                    </div>
-                    
-                    <div style="margin-bottom: 15px;">
-                        <strong>Description:</strong><br>
-                        <div style="background: #f8fafc; padding: 10px; border-radius: 5px; margin-top: 5px;">
-                            ${action.description || 'Aucune description'}
-                        </div>
-                    </div>
-                    
-                    <div style="margin-bottom: 15px;">
-                        <strong>Responsable:</strong> ${action.responsible || action.responsable || 'N/A'}
-                    </div>
-                    
-                    <div style="margin-bottom: 15px;">
-                        <strong>Priorité:</strong> 
-                        <span style="padding: 3px 8px; border-radius: 3px; background: ${
-                            (action.priority || action.priorite) === 'Haute' ? '#fee2e2' : 
-                            (action.priority || action.priorite) === 'Moyenne' ? '#fef3c7' : 
-                            '#dbeafe'
-                        }; color: ${
-                            (action.priority || action.priorite) === 'Haute' ? '#dc2626' : 
-                            (action.priority || action.priorite) === 'Moyenne' ? '#f59e0b' : 
-                            '#3b82f6'
-                        };">
-                            ${action.priority || action.priorite || 'N/A'}
-                        </span>
-                    </div>
-                    
-                    <div style="margin-bottom: 15px;">
-                        <strong>Statut:</strong> 
-                        <span style="padding: 3px 8px; border-radius: 3px; background: ${
-                            (action.status || action.statut) === 'Terminé' ? '#dcfce7' : 
-                            (action.status || action.statut) === 'En cours' ? '#fef3c7' : 
-                            '#e2e8f0'
-                        }; color: ${
-                            (action.status || action.statut) === 'Terminé' ? '#16a34a' : 
-                            (action.status || action.statut) === 'En cours' ? '#f59e0b' : 
-                            '#64748b'
-                        };">
-                            ${action.status || action.statut || 'N/A'}
-                        </span>
-                    </div>
-                    
-                    <div style="margin-bottom: 15px;">
-                        <strong>Date de début:</strong> ${formatDate(action.start_date || action.dateDebut)}
-                    </div>
-                    
-                    <div style="margin-bottom: 15px;">
-                        <strong>Date de fin:</strong> ${formatDate(action.end_date || action.dateFin)}
-                    </div>
-                    
-                    <div style="margin-bottom: 15px;">
-                        <strong>Observations:</strong><br>
-                        <div style="background: #f8fafc; padding: 10px; border-radius: 5px; margin-top: 5px;">
-                            ${action.observations || 'Aucune observation'}
-                        </div>
-                    </div>
-                    
-                    ${action.created_at ? `
-                    <div style="margin-bottom: 15px; color: #64748b; font-size: 0.9em;">
-                        <strong>Créé le:</strong> ${formatDate(action.created_at)}
-                    </div>
-                    ` : ''}
-                    
-                    ${action.updated_at ? `
-                    <div style="margin-bottom: 15px; color: #64748b; font-size: 0.9em;">
-                        <strong>Dernière mise à jour:</strong> ${formatDate(action.updated_at)}
-                    </div>
-                    ` : ''}
-                </div>
-            `;
-            
-            // Créer et afficher la modal
-            const modal = document.createElement('div');
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0, 0, 0, 0.5);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 10000;
-            `;
-            
-            const modalDialog = document.createElement('div');
-            modalDialog.style.cssText = `
-                background: white;
-                border-radius: 10px;
-                max-width: 600px;
-                width: 90%;
-                max-height: 80vh;
-                overflow-y: auto;
-                position: relative;
-                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-            `;
-            
-            // Bouton fermer
-            const closeBtn = document.createElement('button');
-            closeBtn.innerHTML = '✕';
-            closeBtn.style.cssText = `
-                position: absolute;
-                top: 15px;
-                right: 15px;
-                background: none;
-                border: none;
-                font-size: 24px;
-                cursor: pointer;
-                color: #64748b;
-                padding: 5px;
-                width: 30px;
-                height: 30px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                border-radius: 5px;
-                transition: background 0.2s;
-            `;
-            closeBtn.onmouseover = () => closeBtn.style.background = '#f1f5f9';
-            closeBtn.onmouseout = () => closeBtn.style.background = 'none';
-            closeBtn.onclick = () => document.body.removeChild(modal);
-            
-            modalDialog.innerHTML = modalContent;
-            modalDialog.appendChild(closeBtn);
-            modal.appendChild(modalDialog);
-            
-            // Fermer en cliquant en dehors
-            modal.onclick = (e) => {
-                if (e.target === modal) {
-                    document.body.removeChild(modal);
-                }
-            };
-            
-            document.body.appendChild(modal);
-        }
-
-        function formatDate(dateString) {
-            if (!dateString) return 'N/A';
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) return dateString;
-            return date.toLocaleDateString('fr-FR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric'
-            });
         }
 
         function displayActionDetails(action) {

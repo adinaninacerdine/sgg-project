@@ -19,7 +19,7 @@ router.get('/:id/view', authenticateToken, logAction('viewed'), async (req, res)
                     TO_CHAR(a.created_at, 'DD/MM/YYYY HH24:MI') as created_at_formatted
              FROM actions a
              LEFT JOIN users u ON a.created_by = u.id
-             WHERE a.id = $1 OR a.action_code = $1`,
+             WHERE a.id = $1::INTEGER OR a.action_code = $1::TEXT`,
             [id]
         );
 
@@ -104,7 +104,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 
     try {
         const result = await pool.query(
-            'SELECT * FROM actions WHERE id = $1',
+            'SELECT * FROM actions WHERE id = $1::INTEGER',
             [id]
         );
 
