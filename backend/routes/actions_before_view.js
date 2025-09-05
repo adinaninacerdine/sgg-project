@@ -3,63 +3,9 @@ const pool = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
 
-const { checkActionPermission, logAction } = require("../middleware/permissions");
 const router = express.Router();
 
 // Récupérer toutes les actions
-
-// Route pour visualiser une action (lecture seule)
-router.get('/:id/view', authenticateToken, logAction('viewed'), async (req, res) => {
-    const { id } = req.params;
-
-    try {
-        const result = await pool.query(
-            `SELECT a.*, a.action_code as id_display,
-                    u.name as created_by_name,
-                    TO_CHAR(a.created_at, 'DD/MM/YYYY HH24:MI') as created_at_formatted
-             FROM actions a
-             LEFT JOIN users u ON a.created_by = u.id
-             WHERE a.id = $1 OR a.action_code = $1`,
-            [id]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Action non trouvée' });
-        }
-
-        const action = result.rows[0];
-        
-        // Vérifier les permissions
-        const userId = req.user.id;
-        let canRead = req.user.is_super_admin || req.user.role === 'admin';
-        
-        if (!canRead) {
-            const ministryResult = await pool.query(
-                'SELECT id FROM ministries WHERE name = $1',
-                [action.ministry]
-            );
-            
-            if (ministryResult.rows.length > 0) {
-                const permResult = await pool.query(
-                    'SELECT can_view_actions FROM user_ministry_permissions WHERE user_id = $1 AND ministry_id = $2',
-                    [userId, ministryResult.rows[0].id]
-                );
-                canRead = permResult.rows.length > 0 && permResult.rows[0].can_view_actions;
-            }
-        }
-        
-        if (!canRead) {
-            return res.status(403).json({ error: 'Permission refusée' });
-        }
-
-        res.json(action);
-        
-    } catch (error) {
-        console.error('Erreur:', error);
-        res.status(500).json({ error: 'Erreur serveur' });
-    }
-});
-
 router.get('/', authenticateToken, async (req, res) => {
     try {
         const { ministry, status, responsible } = req.query;
