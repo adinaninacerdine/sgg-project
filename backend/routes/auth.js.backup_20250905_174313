@@ -110,30 +110,13 @@ router.post('/login', [
         );
 
         // Créer le token JWT
-        // Récupérer les permissions
-        const permissionsResult = await pool.query(
-            'SELECT resource, can_read, can_write, can_update, can_delete FROM permissions WHERE user_id = $1',
-            [user.id]
-        );
-        
-        const permissions = {};
-        if (permissionsResult.rows.length > 0) {
-            permissionsResult.rows.forEach(perm => {
-                permissions[perm.resource] = {
-                    read: perm.can_read,
-                    write: perm.can_write,
-                    update: perm.can_update,
-                    delete: perm.can_delete
-                };
-            });
-        }
-        
         const token = jwt.sign(
             { 
-                id: user.id,
-                email: user.email,
+                id: user.id, 
+                email: user.email, 
+                name: user.name,
                 role: user.role,
-                permissions: permissions
+                ministry: user.ministry 
             },
             process.env.JWT_SECRET || 'default_secret_key',
             { expiresIn: '24h' }

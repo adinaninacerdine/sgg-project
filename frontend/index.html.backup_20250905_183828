@@ -1746,6 +1746,7 @@
             }
         }
 
+        // Fonction pour afficher les infos utilisateur
         function updateUserInfo() {
             if (currentUser && currentUser.name) {
                 const userInfo = document.getElementById('userInfo');
@@ -3323,247 +3324,336 @@
                 closeMinistryModal();
             }
         });
-// ========== GESTION DES UTILISATEURS ==========
-        
-        function showUserManagement() {
-            const user = JSON.parse(localStorage.getItem('sgg_user') || '{}');
-            
-            if (user.role !== 'admin') {
-                alert('Seuls les administrateurs peuvent gérer les utilisateurs');
-                return;
-            }
-            
-            const modal = document.createElement('div');
-            modal.id = 'userManagementModal';
-            modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;';
-            
-            const modalContent = document.createElement('div');
-            modalContent.style.cssText = 'background: white; border-radius: 15px; width: 90%; max-width: 900px; max-height: 85vh; overflow: hidden; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);';
-            
-            modalContent.innerHTML = `
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 25px; position: relative;">
-                    <h2 style="color: white; margin: 0; font-size: 24px;">👥 Gestion des Utilisateurs</h2>
-                    <button onclick="document.body.removeChild(document.getElementById('userManagementModal'))" 
-                            style="position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.2); border: none; color: white; font-size: 20px; width: 35px; height: 35px; border-radius: 50%; cursor: pointer;">✕</button>
-                </div>
-                
-                <div style="padding: 25px; overflow-y: auto; max-height: calc(85vh - 100px);">
-                    <div style="margin-bottom: 20px;">
-                        <button onclick="showAddUserForm()" 
-                                style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-                            ➕ Nouvel Utilisateur
-                        </button>
-                    </div>
-                    
-                    <div id="addUserForm" style="display: none; margin-bottom: 30px; padding: 20px; background: #f8fafc; border-radius: 10px; border: 2px solid #e2e8f0;">
-                        <h3 style="margin-top: 0; color: #1e293b;">Créer un nouvel utilisateur</h3>
-                        <form onsubmit="createUser(event)">
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                                <div>
-                                    <label style="display: block; margin-bottom: 5px; color: #475569; font-weight: 500;">Nom complet</label>
-                                    <input type="text" id="newUserName" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;">
-                                </div>
-                                <div>
-                                    <label style="display: block; margin-bottom: 5px; color: #475569; font-weight: 500;">Email</label>
-                                    <input type="email" id="newUserEmail" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;">
-                                </div>
-                                <div>
-                                    <label style="display: block; margin-bottom: 5px; color: #475569; font-weight: 500;">Mot de passe</label>
-                                    <input type="password" id="newUserPassword" required minlength="6" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;">
-                                </div>
-                                <div>
-                                    <label style="display: block; margin-bottom: 5px; color: #475569; font-weight: 500;">Rôle</label>
-                                    <select id="newUserRole" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;">
-                                        <option value="viewer">Lecture seule</option>
-                                        <option value="editor">Éditeur</option>
-                                        <option value="admin">Administrateur</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div style="margin-top: 20px;">
-                                <button type="submit" style="background: #3b82f6; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; margin-right: 10px;">Créer</button>
-                                <button type="button" onclick="hideAddUserForm()" style="background: #94a3b8; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;">Annuler</button>
-                            </div>
-                        </form>
-                    </div>
-                    
-                    <div id="usersList" style="background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);">
-                        <div style="padding: 20px; text-align: center; color: #64748b;">Chargement des utilisateurs...</div>
-                    </div>
-                </div>
-            `;
-            
-            modal.appendChild(modalContent);
-            document.body.appendChild(modal);
-            
-            loadUsers();
-        }
-        
-        async function loadUsers() {
-            try {
-                const response = await fetch(`${API_URL}/users`, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('sgg_token')}`
-                    }
-                });
-                
-                if (response.ok) {
-                    const users = await response.json();
-                    displayUsers(users);
-                } else {
-                    document.getElementById('usersList').innerHTML = '<div style="padding: 20px; color: #ef4444;">Erreur de chargement</div>';
-                }
-            } catch (error) {
-                console.error('Erreur:', error);
-                document.getElementById('usersList').innerHTML = '<div style="padding: 20px; color: #ef4444;">Erreur de connexion</div>';
-            }
-        }
-        
-        function displayUsers(users) {
-            const container = document.getElementById('usersList');
-            
-            let html = '<table style="width: 100%; border-collapse: collapse;"><thead><tr style="background: #f1f5f9; border-bottom: 2px solid #e2e8f0;">';
-            html += '<th style="padding: 12px; text-align: left; font-weight: 600; color: #475569;">Nom</th>';
-            html += '<th style="padding: 12px; text-align: left; font-weight: 600; color: #475569;">Email</th>';
-            html += '<th style="padding: 12px; text-align: left; font-weight: 600; color: #475569;">Rôle</th>';
-            html += '<th style="padding: 12px; text-align: left; font-weight: 600; color: #475569;">Statut</th>';
-            html += '<th style="padding: 12px; text-align: left; font-weight: 600; color: #475569;">Actions</th>';
-            html += '</tr></thead><tbody>';
-            
-            users.forEach((user, index) => {
-                const bgColor = index % 2 === 0 ? '#ffffff' : '#f8fafc';
-                const roleColor = user.role === 'admin' ? '#dbeafe' : user.role === 'editor' ? '#fef3c7' : '#f1f5f9';
-                const roleTextColor = user.role === 'admin' ? '#1e40af' : user.role === 'editor' ? '#92400e' : '#475569';
-                const roleIcon = user.role === 'admin' ? '👑 Admin' : user.role === 'editor' ? '✏️ Éditeur' : '👁️ Lecture';
-                const statusColor = user.is_active ? '#dcfce7' : '#fee2e2';
-                const statusTextColor = user.is_active ? '#16a34a' : '#dc2626';
-                const statusText = user.is_active ? '✓ Actif' : '✗ Inactif';
-                const toggleColor = user.is_active ? '#ef4444' : '#10b981';
-                const toggleText = user.is_active ? '🚫 Désactiver' : '✓ Activer';
-                
-                html += `<tr style="background: ${bgColor}; border-bottom: 1px solid #e2e8f0;">`;
-                html += `<td style="padding: 12px; color: #1e293b;">${user.name}</td>`;
-                html += `<td style="padding: 12px; color: #64748b;">${user.email}</td>`;
-                html += `<td style="padding: 12px;"><span style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 13px; font-weight: 500; background: ${roleColor}; color: ${roleTextColor};">${roleIcon}</span></td>`;
-                html += `<td style="padding: 12px;"><span style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 13px; font-weight: 500; background: ${statusColor}; color: ${statusTextColor};">${statusText}</span></td>`;
-                html += `<td style="padding: 12px;">`;
-                html += `<button onclick="changeUserPassword(${user.id}, '${user.email}')" style="padding: 6px 12px; background: #8b5cf6; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 5px; font-size: 13px;">🔑 MDP</button>`;
-                html += `<button onclick="toggleUserStatus(${user.id}, ${user.is_active})" style="padding: 6px 12px; background: ${toggleColor}; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 13px;">${toggleText}</button>`;
-                html += `</td></tr>`;
-            });
-            
-            html += '</tbody></table>';
-            container.innerHTML = html;
-        }
-        
-        function showAddUserForm() {
-            document.getElementById('addUserForm').style.display = 'block';
-        }
-        
-        function hideAddUserForm() {
-            document.getElementById('addUserForm').style.display = 'none';
-            document.getElementById('newUserName').value = '';
-            document.getElementById('newUserEmail').value = '';
-            document.getElementById('newUserPassword').value = '';
-        }
-        
-        async function createUser(event) {
-            event.preventDefault();
-            
-            const userData = {
-                name: document.getElementById('newUserName').value,
-                email: document.getElementById('newUserEmail').value,
-                password: document.getElementById('newUserPassword').value,
-                role: document.getElementById('newUserRole').value
-            };
-            
-            try {
-                const response = await fetch(`${API_URL}/users/create`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('sgg_token')}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(userData)
-                });
-                
-                if (response.ok) {
-                    alert('Utilisateur créé avec succès');
-                    hideAddUserForm();
-                    loadUsers();
-                } else {
-                    const error = await response.json();
-                    alert('Erreur: ' + (error.error || 'Création impossible'));
-                }
-            } catch (error) {
-                console.error('Erreur:', error);
-                alert('Erreur de connexion');
-            }
-        }
-        
-        function changeUserPassword(userId, userEmail) {
-            const newPassword = prompt('Nouveau mot de passe pour ' + userEmail + ':');
-            
-            if (!newPassword || newPassword.length < 6) {
-                if (newPassword !== null) {
-                    alert('Le mot de passe doit contenir au moins 6 caractères');
-                }
-                return;
-            }
-            
-            updateUserPassword(userId, newPassword);
-        }
-        
-        async function updateUserPassword(userId, newPassword) {
-            try {
-                const response = await fetch(`${API_URL}/users/${userId}/password`, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('sgg_token')}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ password: newPassword })
-                });
-                
-                if (response.ok) {
-                    alert('Mot de passe modifié avec succès');
-                } else {
-                    const error = await response.json();
-                    alert('Erreur: ' + (error.error || 'Modification impossible'));
-                }
-            } catch (error) {
-                console.error('Erreur:', error);
-                alert('Erreur de connexion');
-            }
-        }
-        
-        async function toggleUserStatus(userId, currentStatus) {
-            const action = currentStatus ? 'désactiver' : 'activer';
-            if (confirm('Voulez-vous vraiment ' + action + ' cet utilisateur ?')) {
-                try {
-                    const response = await fetch(`${API_URL}/users/${userId}/status`, {
-                        method: 'PUT',
-                        headers: {
-                            'Authorization': `Bearer ${localStorage.getItem('sgg_token')}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ is_active: !currentStatus })
-                    });
-                    
-                    if (response.ok) {
-                        loadUsers();
-                    } else {
-                        const error = await response.json();
-                        alert('Erreur: ' + (error.error || 'Modification impossible'));
-                    }
-                } catch (error) {
-                    console.error('Erreur:', error);
-                    alert('Erreur de connexion');
-                }
-            }
-        }
     </script>
 </body>
 </html>
 
+// Fonction pour afficher la gestion des utilisateurs
+function showUserManagement() {
+    const user = JSON.parse(localStorage.getItem('sgg_user') || '{}');
+    
+    // Vérifier si l'utilisateur est admin
+    if (user.role !== 'admin') {
+        alert('Seuls les administrateurs peuvent gérer les utilisateurs');
+        return;
+    }
+    
+    // Créer la modal
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+    `;
+    
+    const modalContent = document.createElement('div');
+    modalContent.style.cssText = `
+        background: white;
+        border-radius: 10px;
+        width: 90%;
+        max-width: 800px;
+        max-height: 80vh;
+        overflow-y: auto;
+        padding: 30px;
+    `;
+    
+    modalContent.innerHTML = `
+        <h2 style="margin-bottom: 20px;">Gestion des Utilisateurs</h2>
+        
+        <div style="margin-bottom: 20px;">
+            <button onclick="showAddUserForm()" style="background: #10b981; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
+                ➕ Nouvel Utilisateur
+            </button>
+        </div>
+        
+        <div id="usersList">Chargement...</div>
+        
+        <div id="addUserForm" style="display: none; margin-top: 20px; padding: 20px; background: #f3f4f6; border-radius: 8px;">
+            <h3>Créer un Utilisateur</h3>
+            <form onsubmit="createUser(event)">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div>
+                        <label>Nom complet *</label>
+                        <input type="text" id="newUserName" required style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;">
+                    </div>
+                    <div>
+                        <label>Email *</label>
+                        <input type="email" id="newUserEmail" required style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;">
+                    </div>
+                    <div>
+                        <label>Mot de passe *</label>
+                        <input type="password" id="newUserPassword" required minlength="6" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;">
+                    </div>
+                    <div>
+                        <label>Rôle *</label>
+                        <select id="newUserRole" required style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;">
+                            <option value="viewer">Lecture seule</option>
+                            <option value="editor">Éditeur</option>
+                            <option value="admin">Administrateur</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 15px;">
+                    <label>Ministères autorisés (cochez les cases) :</label>
+                    <div id="ministryCheckboxes" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px;">
+                        <!-- Les ministères seront chargés ici -->
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <button type="submit" style="background: #3b82f6; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
+                        Créer l'utilisateur
+                    </button>
+                    <button type="button" onclick="hideAddUserForm()" style="background: #6b7280; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
+                        Annuler
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    modal.appendChild(modalContent);
+    
+    // Bouton fermer
+    const closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '✕';
+    closeBtn.style.cssText = `
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+    `;
+    closeBtn.onclick = () => document.body.removeChild(modal);
+    modalContent.appendChild(closeBtn);
+    
+    document.body.appendChild(modal);
+    
+    // Charger les utilisateurs et les ministères
+    loadUsers();
+    loadMinistriesForCheckboxes();
+}
+
+async function loadUsers() {
+    try {
+        const response = await fetch(`${API_URL}/users`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('sgg_token')}`
+            }
+        });
+        
+        if (response.ok) {
+            const users = await response.json();
+            displayUsers(users);
+        }
+    } catch (error) {
+        console.error('Erreur chargement utilisateurs:', error);
+    }
+}
+
+
+function showAddUserForm() {
+    document.getElementById('addUserForm').style.display = 'block';
+}
+
+function hideAddUserForm() {
+    document.getElementById('addUserForm').style.display = 'none';
+}
+
+async function createUser(event) {
+    event.preventDefault();
+    
+    const selectedMinistries = [];
+    document.querySelectorAll('#ministryCheckboxes input:checked').forEach(cb => {
+        selectedMinistries.push(cb.value);
+    });
+    
+    const userData = {
+        name: document.getElementById('newUserName').value,
+        email: document.getElementById('newUserEmail').value,
+        password: document.getElementById('newUserPassword').value,
+        role: document.getElementById('newUserRole').value,
+        allowed_ministries: selectedMinistries
+    };
+    
+    try {
+        const response = await fetch(`${API_URL}/users/create`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('sgg_token')}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(userData)
+        });
+        
+        if (response.ok) {
+            alert('Utilisateur créé avec succès');
+            hideAddUserForm();
+            loadUsers();
+        } else {
+            const error = await response.json();
+            alert('Erreur: ' + error.error);
+        }
+    } catch (error) {
+        console.error('Erreur création utilisateur:', error);
+        alert('Erreur lors de la création');
+    }
+}
+
+async function loadMinistriesForCheckboxes() {
+    try {
+        const response = await fetch(`${API_URL}/ministries`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('sgg_token')}`
+            }
+        });
+        
+        if (response.ok) {
+            const ministries = await response.json();
+            const container = document.getElementById('ministryCheckboxes');
+            
+            container.innerHTML = ministries.map(m => `
+                <label style="display: flex; align-items: center;">
+                    <input type="checkbox" value="${m.name}" style="margin-right: 8px;">
+                    ${m.name}
+                </label>
+            `).join('');
+        }
+    } catch (error) {
+        console.error('Erreur chargement ministères:', error);
+    }
+}
+
+// Fonction pour changer le mot de passe
+function changeUserPassword(userId, userEmail) {
+    const newPassword = prompt(`Nouveau mot de passe pour ${userEmail}:`);
+    
+    if (!newPassword || newPassword.length < 6) {
+        alert('Le mot de passe doit contenir au moins 6 caractères');
+        return;
+    }
+    
+    const confirmPassword = prompt('Confirmez le mot de passe:');
+    
+    if (newPassword !== confirmPassword) {
+        alert('Les mots de passe ne correspondent pas');
+        return;
+    }
+    
+    updateUserPassword(userId, newPassword);
+}
+
+async function updateUserPassword(userId, newPassword) {
+    try {
+        const response = await fetch(`${API_URL}/users/${userId}/password`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('sgg_token')}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ password: newPassword })
+        });
+        
+        if (response.ok) {
+            alert('Mot de passe modifié avec succès');
+        } else {
+            const error = await response.json();
+            alert('Erreur: ' + error.error);
+        }
+    } catch (error) {
+        console.error('Erreur changement mot de passe:', error);
+        alert('Erreur lors du changement de mot de passe');
+    }
+}
+
+// Modifier la fonction displayUsers pour ajouter le bouton
+function displayUsers(users) {
+    const container = document.getElementById('usersList');
+    
+    let html = `
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #f3f4f6;">
+                    <th style="padding: 10px; text-align: left;">Nom</th>
+                    <th style="padding: 10px; text-align: left;">Email</th>
+                    <th style="padding: 10px; text-align: left;">Rôle</th>
+                    <th style="padding: 10px; text-align: left;">Statut</th>
+                    <th style="padding: 10px; text-align: left;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    users.forEach(user => {
+        html += `
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 10px;">${user.name}</td>
+                <td style="padding: 10px;">${user.email}</td>
+                <td style="padding: 10px;">
+                    <span style="padding: 3px 8px; border-radius: 3px; background: ${
+                        user.role === 'admin' ? '#dbeafe' : 
+                        user.role === 'editor' ? '#fef3c7' : 
+                        '#e5e7eb'
+                    }; color: ${
+                        user.role === 'admin' ? '#1e40af' : 
+                        user.role === 'editor' ? '#92400e' : 
+                        '#374151'
+                    };">
+                        ${user.role === 'admin' ? 'Admin' : 
+                          user.role === 'editor' ? 'Éditeur' : 
+                          'Lecture'}
+                    </span>
+                </td>
+                <td style="padding: 10px;">
+                    <span style="padding: 3px 8px; border-radius: 3px; background: ${user.is_active ? '#dcfce7' : '#fee2e2'}; color: ${user.is_active ? '#16a34a' : '#dc2626'};">
+                        ${user.is_active ? 'Actif' : 'Inactif'}
+                    </span>
+                </td>
+                <td style="padding: 10px;">
+                    <button onclick="changeUserPassword(${user.id}, '${user.email}')" style="padding: 5px 10px; background: #8b5cf6; color: white; border: none; border-radius: 3px; cursor: pointer; margin-right: 5px;">
+                        Changer MDP
+                    </button>
+                    <button onclick="toggleUserStatus(${user.id}, ${user.is_active})" style="padding: 5px 10px; background: ${user.is_active ? '#ef4444' : '#10b981'}; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                        ${user.is_active ? 'Désactiver' : 'Activer'}
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+async function toggleUserStatus(userId, currentStatus) {
+    try {
+        const response = await fetch(`${API_URL}/users/${userId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('sgg_token')}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ is_active: !currentStatus })
+        });
+        
+        if (response.ok) {
+            alert('Statut modifié avec succès');
+            loadUsers();
+        } else {
+            const error = await response.json();
+            alert('Erreur: ' + error.error);
+        }
+    } catch (error) {
+        console.error('Erreur modification statut:', error);
+    }
+}

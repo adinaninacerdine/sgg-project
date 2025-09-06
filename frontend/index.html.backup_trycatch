@@ -1395,20 +1395,10 @@
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    console.error('Erreur lors de la récupération:', errorData);
                     alert(`Erreur: ${errorData.error || 'Impossible de charger les détails'}`);
                     return;
                 }
 
-                const action = await response.json();
-                console.log('Action récupérée:', action);
-                
-                // Afficher les détails dans une modal
-                showActionDetails(action);
-                
-            } catch (error) {
-                console.error('Erreur:', error);
                 alert('Erreur lors de la récupération des détails');
             }
         }
@@ -1636,15 +1626,6 @@
                     throw new Error('Token invalide');
                 }
 
-                const data = await response.json();
-                currentUser = data.user;
-                localStorage.setItem('sgg_user', JSON.stringify(currentUser));
-
-                // Afficher les infos utilisateur dans le header
-                updateUserInfo();
-
-            } catch (error) {
-                console.error('Erreur authentification:', error);
                 localStorage.removeItem('sgg_token');
                 localStorage.removeItem('sgg_user');
                 window.location.href = './login.html';
@@ -1746,6 +1727,7 @@
             }
         }
 
+        // Fonction pour afficher les infos utilisateur
         function updateUserInfo() {
             if (currentUser && currentUser.name) {
                 const userInfo = document.getElementById('userInfo');
@@ -1839,11 +1821,6 @@
                     updateDashboard();
                     showAlert('Action enregistrée avec succès!', 'success');
                 } else {
-                    const error = await response.json();
-                    showAlert(error.error || 'Erreur lors de l\'enregistrement', 'error');
-                }
-            } catch (error) {
-                console.error('Erreur sauvegarde action:', error);
                 // Fallback en mode local
                 saveActionLocally(actionData);
             }
@@ -1893,11 +1870,6 @@
                     populateDropdowns();
                     showAlert(editingIndex !== null ? 'Membre modifié avec succès!' : 'Membre ajouté avec succès!', 'success');
                 } else {
-                    const error = await response.json();
-                    showAlert(error.error || 'Erreur lors de l\'opération', 'error');
-                }
-            } catch (error) {
-                console.error('Erreur opération membre:', error);
                 // Fallback en mode local
                 saveMemberLocally(memberData);
             }
@@ -1946,11 +1918,6 @@
                     populateDropdowns();
                     showAlert(editingIndex !== null ? 'Ministère modifié avec succès!' : 'Ministère ajouté avec succès!', 'success');
                 } else {
-                    const error = await response.json();
-                    showAlert(error.error || 'Erreur lors de l\'opération', 'error');
-                }
-            } catch (error) {
-                console.error('Erreur opération ministère:', error);
                 // Fallback local
                 if (editingIndex !== null) {
                     ministries[editingIndex] = {...ministries[editingIndex], ...ministry};
@@ -2414,11 +2381,6 @@
                         populateDropdowns();
                         showAlert('Membre supprimé', 'warning');
                     } else {
-                        const error = await response.json();
-                        showAlert(error.error || 'Erreur lors de la suppression', 'error');
-                    }
-                } catch (error) {
-                    console.error('Erreur suppression:', error);
                     // Fallback local
                     teamMembers.splice(index, 1);
                     saveToLocalStorage();
@@ -2449,11 +2411,6 @@
                             populateDropdowns();
                             showAlert('Ministère supprimé', 'warning');
                         } else {
-                            const error = await response.json();
-                            showAlert(error.error || 'Erreur lors de la suppression', 'error');
-                        }
-                    } catch (error) {
-                        console.error('Erreur suppression ministère:', error);
                         // Fallback local
                         ministries.splice(index, 1);
                         saveToLocalStorage();
@@ -2897,31 +2854,6 @@
                 });
                 
                 if (response.ok) {
-                    const data = await response.json();
-                    
-                    // Mettre à jour les stats
-                    document.getElementById('pendingUsers').textContent = data.count;
-                    
-                    // Afficher les utilisateurs en attente
-                    const tbody = document.getElementById('pendingUsersTable');
-                    tbody.innerHTML = '';
-                    
-                    data.users.forEach(user => {
-                        const row = tbody.insertRow();
-                        row.innerHTML = `
-                            <td>${user.name}</td>
-                            <td>${user.email}</td>
-                            <td>${user.ministry}</td>
-                            <td>${new Date(user.created_at).toLocaleDateString('fr-FR')}</td>
-                            <td>
-                                <button class="btn btn-success" onclick="activateUser(${user.id})">✅ Activer</button>
-                                <button class="btn btn-danger" onclick="deleteUser(${user.id})">❌ Refuser</button>
-                            </td>
-                        `;
-                    });
-                }
-            } catch (error) {
-                console.error('Erreur chargement utilisateurs en attente:', error);
             }
             
             // Charger tous les utilisateurs
@@ -2937,53 +2869,6 @@
                 });
                 
                 if (response.ok) {
-                    const users = await response.json();
-                    
-                    // Mettre à jour les stats
-                    document.getElementById('totalUsers').textContent = users.length;
-                    document.getElementById('activeUsers').textContent = users.filter(u => u.is_active).length;
-                    
-                    // Afficher tous les utilisateurs
-                    const tbody = document.getElementById('allUsersTable');
-                    tbody.innerHTML = '';
-                    
-                    users.forEach(user => {
-                        const row = tbody.insertRow();
-                        const statusBadge = user.is_active 
-                            ? '<span class="status-badge termine">Actif</span>' 
-                            : '<span class="status-badge en-retard">Inactif</span>';
-                        
-                        const roleBadge = user.role === 'admin' 
-                            ? '<span class="status-badge nouveau">Admin</span>' 
-                            : '<span class="status-badge">User</span>';
-                        
-                        // Badge permissions
-                        const permissionsBadge = user.is_super_admin 
-                            ? '<span class="status-badge nouveau">Super Admin</span>'
-                            : '<span class="status-badge">Standard</span>';
-                        
-                        row.innerHTML = `
-                            <td>${user.name}</td>
-                            <td>${user.email}</td>
-                            <td>${user.ministry}</td>
-                            <td>${roleBadge}</td>
-                            <td>${statusBadge}</td>
-                            <td>${permissionsBadge}</td>
-                            <td>${user.last_login ? new Date(user.last_login).toLocaleDateString('fr-FR') : '-'}</td>
-                            <td>
-                                ${user.id !== currentUser.id ? `
-                                    <button class="btn-icon" onclick="openPermissionsModal(${user.id}, '${user.name}')">🔐</button>
-                                    ${!user.is_active ? `<button class="btn-icon edit" onclick="activateUser(${user.id})">✅</button>` : ''}
-                                    ${user.is_active ? `<button class="btn-icon" onclick="deactivateUser(${user.id})">🔒</button>` : ''}
-                                    ${user.role === 'user' ? `<button class="btn-icon" onclick="makeAdmin(${user.id})">👑</button>` : ''}
-                                    <button class="btn-icon delete" onclick="deleteUser(${user.id})">🗑️</button>
-                                ` : '<span style="color: #7f8c8d;">Vous</span>'}
-                            </td>
-                        `;
-                    });
-                }
-            } catch (error) {
-                console.error('Erreur chargement utilisateurs:', error);
             }
         }
 
@@ -3016,30 +2901,6 @@
                 });
                 
                 if (response.ok) {
-                    const data = await response.json();
-                    
-                    // Si super admin, cocher toutes les cases
-                    if (data.is_super_admin) {
-                        document.getElementById('applyToAllMinistries').checked = true;
-                        toggleMinistrySelection();
-                        // Cocher toutes les permissions
-                        document.querySelectorAll('[id^="perm_"]').forEach(checkbox => {
-                            checkbox.checked = true;
-                        });
-                    } else {
-                        // Appliquer les permissions par ministère
-                        data.permissions.forEach(perm => {
-                            if (perm.ministry_id) {
-                                const checkbox = document.querySelector(`.ministry-checkbox[value="${perm.ministry_id}"]`);
-                                if (checkbox && (perm.can_view_actions || perm.can_create_actions)) {
-                                    checkbox.checked = true;
-                                }
-                            }
-                        });
-                    }
-                }
-            } catch (error) {
-                console.error('Erreur chargement permissions:', error);
             }
             
             document.getElementById('permissionsModal').classList.add('active');
@@ -3233,11 +3094,6 @@
                         showAlert('Utilisateur activé avec succès', 'success');
                         loadPendingUsers();
                     } else {
-                        const error = await response.json();
-                        showAlert(error.error || 'Erreur lors de l\'activation', 'error');
-                    }
-                } catch (error) {
-                    console.error('Erreur activation:', error);
                     showAlert('Erreur de connexion', 'error');
                 }
             }
@@ -3323,6 +3179,150 @@
                 closeMinistryModal();
             }
         });
+// ========== GESTION DES UTILISATEURS ==========
+        
+        
+        async function loadUsers() {
+            try {
+                const response = await fetch(`${API_URL}/users`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('sgg_token')}`
+                    }
+                });
+                
+                if (response.ok) {
+                document.getElementById('usersList').innerHTML = '<div style="padding: 20px; color: #ef4444;">Erreur de connexion</div>';
+            }
+        }
+        
+        function displayUsers(users) {
+            const container = document.getElementById('usersList');
+            
+            let html = '<table style="width: 100%; border-collapse: collapse;"><thead><tr style="background: #f1f5f9; border-bottom: 2px solid #e2e8f0;">';
+            html += '<th style="padding: 12px; text-align: left; font-weight: 600; color: #475569;">Nom</th>';
+            html += '<th style="padding: 12px; text-align: left; font-weight: 600; color: #475569;">Email</th>';
+            html += '<th style="padding: 12px; text-align: left; font-weight: 600; color: #475569;">Rôle</th>';
+            html += '<th style="padding: 12px; text-align: left; font-weight: 600; color: #475569;">Statut</th>';
+            html += '<th style="padding: 12px; text-align: left; font-weight: 600; color: #475569;">Actions</th>';
+            html += '</tr></thead><tbody>';
+            
+            users.forEach((user, index) => {
+                const bgColor = index % 2 === 0 ? '#ffffff' : '#f8fafc';
+                const roleColor = user.role === 'admin' ? '#dbeafe' : user.role === 'editor' ? '#fef3c7' : '#f1f5f9';
+                const roleTextColor = user.role === 'admin' ? '#1e40af' : user.role === 'editor' ? '#92400e' : '#475569';
+                const roleIcon = user.role === 'admin' ? '👑 Admin' : user.role === 'editor' ? '✏️ Éditeur' : '👁️ Lecture';
+                const statusColor = user.is_active ? '#dcfce7' : '#fee2e2';
+                const statusTextColor = user.is_active ? '#16a34a' : '#dc2626';
+                const statusText = user.is_active ? '✓ Actif' : '✗ Inactif';
+                const toggleColor = user.is_active ? '#ef4444' : '#10b981';
+                const toggleText = user.is_active ? '🚫 Désactiver' : '✓ Activer';
+                
+                html += `<tr style="background: ${bgColor}; border-bottom: 1px solid #e2e8f0;">`;
+                html += `<td style="padding: 12px; color: #1e293b;">${user.name}</td>`;
+                html += `<td style="padding: 12px; color: #64748b;">${user.email}</td>`;
+                html += `<td style="padding: 12px;"><span style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 13px; font-weight: 500; background: ${roleColor}; color: ${roleTextColor};">${roleIcon}</span></td>`;
+                html += `<td style="padding: 12px;"><span style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 13px; font-weight: 500; background: ${statusColor}; color: ${statusTextColor};">${statusText}</span></td>`;
+                html += `<td style="padding: 12px;">`;
+                html += `<button onclick="changeUserPassword(${user.id}, '${user.email}')" style="padding: 6px 12px; background: #8b5cf6; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 5px; font-size: 13px;">🔑 MDP</button>`;
+                html += `<button onclick="toggleUserStatus(${user.id}, ${user.is_active})" style="padding: 6px 12px; background: ${toggleColor}; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 13px;">${toggleText}</button>`;
+                html += `</td></tr>`;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+        
+        function showAddUserForm() {
+            document.getElementById('addUserForm').style.display = 'block';
+        }
+        
+        function hideAddUserForm() {
+            document.getElementById('addUserForm').style.display = 'none';
+            document.getElementById('newUserName').value = '';
+            document.getElementById('newUserEmail').value = '';
+            document.getElementById('newUserPassword').value = '';
+        }
+        
+        async function createUser(event) {
+            event.preventDefault();
+            
+            const userData = {
+                name: document.getElementById('newUserName').value,
+                email: document.getElementById('newUserEmail').value,
+                password: document.getElementById('newUserPassword').value,
+                role: document.getElementById('newUserRole').value
+            };
+            
+            try {
+                const response = await fetch(`${API_URL}/users/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('sgg_token')}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(userData)
+                });
+                
+                if (response.ok) {
+                    alert('Utilisateur créé avec succès');
+                    loadUsers();
+                } else {
+                alert('Erreur de connexion');
+            }
+        }
+        
+        function changeUserPassword(userId, userEmail) {
+            const newPassword = prompt('Nouveau mot de passe pour ' + userEmail + ':');
+            
+            if (!newPassword || newPassword.length < 6) {
+                if (newPassword !== null) {
+                    alert('Le mot de passe doit contenir au moins 6 caractères');
+                }
+                return;
+            }
+            
+            updateUserPassword(userId, newPassword);
+        }
+        
+        async function updateUserPassword(userId, newPassword) {
+            try {
+                const response = await fetch(`${API_URL}/users/${userId}/password`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('sgg_token')}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ password: newPassword })
+                });
+                
+                if (response.ok) {
+                    alert('Mot de passe modifié avec succès');
+                } else {
+                alert('Erreur de connexion');
+            }
+        }
+        
+        async function toggleUserStatus(userId, currentStatus) {
+            const action = currentStatus ? 'désactiver' : 'activer';
+            if (confirm('Voulez-vous vraiment ' + action + ' cet utilisateur ?')) {
+                try {
+                    const response = await fetch(`${API_URL}/users/${userId}/status`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('sgg_token')}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ is_active: !currentStatus })
+                    });
+                    
+                    if (response.ok) {
+                        loadUsers();
+                    } else {
+                    alert('Erreur de connexion');
+                }
+            }
+        }
+
 // ========== GESTION DES UTILISATEURS ==========
         
         function showUserManagement() {
@@ -3563,7 +3563,10 @@
                 }
             }
         }
+        // ========== GESTION DES UTILISATEURS ==========
+
     </script>
 </body>
 </html>
 
+// Fonction pour afficher la gestion des utilisateurs

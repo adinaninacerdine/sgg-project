@@ -1372,7 +1372,6 @@
         let currentFilter = 'all';
         let editingIndex = null;
 
-        // Fonction pour visualiser une action
         async function viewAction(actionId) {
             console.log('Viewing action ID:', actionId);
             
@@ -1679,7 +1678,6 @@
             }
         });
 
-        // Fonction pour charger les données depuis l'API - MODIFIÉE
         async function loadDataFromAPI() {
             try {
                 // NOUVEAU : Charger les ministères depuis l'API
@@ -2336,7 +2334,6 @@
             openActionModal();
         }
 
-        // Fonction pour éditer un membre de l'équipe
         function editTeamMember(index) {
             const member = teamMembers[index];
             editingIndex = index;
@@ -2351,7 +2348,6 @@
             openTeamModal();
         }
 
-        // Fonction pour éditer un ministère
         function editMinistry(index) {
             const ministry = ministries[index];
             editingIndex = index;
@@ -3323,6 +3319,16 @@
                 closeMinistryModal();
             }
         });
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
 // ========== GESTION DES UTILISATEURS ==========
         
         function showUserManagement() {
@@ -3563,7 +3569,85 @@
                 }
             }
         }
+        // ========== GESTION DES UTILISATEURS ==========
+        // Fonctions ajoutées une seule fois
+
     </script>
 </body>
 </html>
 
+        
+        if (response.ok) {
+            const users = await response.json();
+            displayUsers(users);
+        }
+    } catch (error) {
+        console.error('Erreur chargement utilisateurs:', error);
+    }
+}
+
+
+        
+        if (response.ok) {
+            alert('Utilisateur créé avec succès');
+            hideAddUserForm();
+            loadUsers();
+        } else {
+            const error = await response.json();
+            alert('Erreur: ' + error.error);
+        }
+    } catch (error) {
+        console.error('Erreur création utilisateur:', error);
+        alert('Erreur lors de la création');
+    }
+}
+
+async function loadMinistriesForCheckboxes() {
+    try {
+        const response = await fetch(`${API_URL}/ministries`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('sgg_token')}`
+            }
+        });
+        
+        if (response.ok) {
+            const ministries = await response.json();
+            const container = document.getElementById('ministryCheckboxes');
+            
+            container.innerHTML = ministries.map(m => `
+                <label style="display: flex; align-items: center;">
+                    <input type="checkbox" value="${m.name}" style="margin-right: 8px;">
+                    ${m.name}
+                </label>
+            `).join('');
+        }
+    } catch (error) {
+        console.error('Erreur chargement ministères:', error);
+    }
+}
+
+        
+        if (response.ok) {
+            alert('Mot de passe modifié avec succès');
+        } else {
+            const error = await response.json();
+            alert('Erreur: ' + error.error);
+        }
+    } catch (error) {
+        console.error('Erreur changement mot de passe:', error);
+        alert('Erreur lors du changement de mot de passe');
+    }
+}
+
+        
+        if (response.ok) {
+            alert('Statut modifié avec succès');
+            loadUsers();
+        } else {
+            const error = await response.json();
+            alert('Erreur: ' + error.error);
+        }
+    } catch (error) {
+        console.error('Erreur modification statut:', error);
+    }
+}
