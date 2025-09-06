@@ -146,6 +146,11 @@
             border-color: #DC2626;
         }
 
+        .form-select:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
         .password-container {
             position: relative;
         }
@@ -219,6 +224,12 @@
             border: 1px solid rgba(16, 185, 129, 0.2);
         }
 
+        .alert.info {
+            background: rgba(14, 165, 233, 0.1);
+            color: #0284C7;
+            border: 1px solid rgba(14, 165, 233, 0.2);
+        }
+
         .loading-spinner {
             display: none;
             width: 20px;
@@ -278,6 +289,13 @@
             margin-left: 20px;
         }
 
+        .loading-ministries {
+            font-size: 12px;
+            color: #7f8c8d;
+            font-style: italic;
+            padding: 5px 0;
+        }
+
         @media (max-width: 480px) {
             .signup-card {
                 padding: 30px 20px;
@@ -328,18 +346,12 @@
 
                 <div class="form-group">
                     <label class="form-label">Ministère</label>
-                    <select class="form-select" id="ministry" required>
-                        <option value="">Sélectionner un ministère</option>
-                        <option value="Intérieur">Intérieur</option>
-                        <option value="Économie">Économie</option>
-                        <option value="Santé">Santé</option>
-                        <option value="Éducation">Éducation</option>
-                        <option value="Justice">Justice</option>
-                        <option value="Transport">Transport</option>
-                        <option value="Agriculture">Agriculture</option>
-                        <option value="Environnement">Environnement</option>
-                        <option value="Administration">Administration</option>
+                    <select class="form-select" id="ministry" required disabled>
+                        <option value="">Chargement des ministères...</option>
                     </select>
+                    <div class="loading-ministries" id="ministryLoadingMessage" style="display: none;">
+                        Connexion au serveur...
+                    </div>
                 </div>
 
                 <div class="form-row">
@@ -400,6 +412,104 @@
     <script>
         // Configuration API
         const API_URL = '/api';  // ou 'http://alcamar.org/api'
+
+        // Charger les ministères depuis l'API au chargement de la page
+        window.addEventListener('DOMContentLoaded', async function() {
+            await loadMinistries();
+        });
+
+        // Fonction pour charger les ministères depuis l'API
+        async function loadMinistries() {
+            const ministrySelect = document.getElementById('ministry');
+            const loadingMessage = document.getElementById('ministryLoadingMessage');
+            
+            // Afficher le message de chargement
+            loadingMessage.style.display = 'block';
+            loadingMessage.textContent = 'Connexion au serveur...';
+            
+            try {
+                // Appel API pour récupérer les ministères
+                const response = await fetch(`${API_URL}/ministries`);
+                
+                if (response.ok) {
+                    const ministries = await response.json();
+                    
+                    // Vider le select et ajouter l'option par défaut
+                    ministrySelect.innerHTML = '<option value="">Sélectionner un ministère</option>';
+                    
+                    // Ajouter les ministères récupérés
+                    if (ministries && ministries.length > 0) {
+                        ministries.forEach(ministry => {
+                            const option = document.createElement('option');
+                            option.value = ministry.name;
+                            option.textContent = ministry.name;
+                            if (ministry.abbrev) {
+                                option.textContent += ` (${ministry.abbrev})`;
+                            }
+                            ministrySelect.appendChild(option);
+                        });
+                        
+                        // Activer le select
+                        ministrySelect.disabled = false;
+                        loadingMessage.style.display = 'none';
+                        
+                        console.log(`✅ ${ministries.length} ministères chargés depuis la BDD`);
+                    } else {
+                        // Aucun ministère dans la BDD, utiliser les valeurs par défaut
+                        loadDefaultMinistries();
+                    }
+                } else {
+                    // Erreur lors de la récupération, utiliser les valeurs par défaut
+                    console.warn('Erreur lors de la récupération des ministères, utilisation des valeurs par défaut');
+                    loadDefaultMinistries();
+                }
+            } catch (error) {
+                console.error('Erreur connexion API:', error);
+                // En cas d'erreur réseau, utiliser les valeurs par défaut
+                loadDefaultMinistries();
+            }
+        }
+
+        // Fonction de fallback avec les ministères par défaut
+        function loadDefaultMinistries() {
+            const ministrySelect = document.getElementById('ministry');
+            const loadingMessage = document.getElementById('ministryLoadingMessage');
+            
+            const defaultMinistries = [
+                'Intérieur',
+                'Économie',
+                'Santé',
+                'Éducation',
+                'Justice',
+                'Transport',
+                'Agriculture',
+                'Environnement',
+                'Administration',
+                'Affaires Étrangères',
+                'Défense',
+                'Culture',
+                'Travail',
+                'Finances'
+            ];
+            
+            ministrySelect.innerHTML = '<option value="">Sélectionner un ministère</option>';
+            
+            defaultMinistries.forEach(ministry => {
+                const option = document.createElement('option');
+                option.value = ministry;
+                option.textContent = ministry;
+                ministrySelect.appendChild(option);
+            });
+            
+            // Activer le select
+            ministrySelect.disabled = false;
+            loadingMessage.textContent = 'Mode hors-ligne - Ministères par défaut';
+            loadingMessage.style.color = '#D97706';
+            
+            setTimeout(() => {
+                loadingMessage.style.display = 'none';
+            }, 3000);
+        }
 
         // Gestion du formulaire d'inscription
         document.getElementById('signupForm').addEventListener('submit', async function(e) {
@@ -466,12 +576,13 @@
                 const data = await response.json();
                 
                 if (response.ok) {
-                    showAlert('Compte créé avec succès! Redirection vers la connexion...', 'success');
+                    // Afficher un message d'information sur la validation
+                    showAlert('Compte créé avec succès! Votre compte doit être validé par un administrateur avant de pouvoir vous connecter.', 'info');
                     
-                    // Rediriger vers la page de connexion après 2 secondes
+                    // Rediriger vers la page de connexion après 4 secondes
                     setTimeout(() => {
                         window.location.href = './login.html';
-                    }, 2000);
+                    }, 4000);
                 } else {
                     if (data.errors && Array.isArray(data.errors)) {
                         // Afficher les erreurs de validation
@@ -517,12 +628,15 @@
             alert.textContent = message;
             alertContainer.appendChild(alert);
             
+            // Durée d'affichage plus longue pour les messages info
+            const duration = type === 'info' ? 8000 : 5000;
+            
             setTimeout(() => {
                 alert.style.opacity = '0';
                 setTimeout(() => {
                     alert.remove();
                 }, 300);
-            }, 5000);
+            }, duration);
         }
 
         // Effacer les alertes
@@ -539,6 +653,15 @@
                 this.classList.add('error');
             } else {
                 this.classList.remove('error');
+            }
+        });
+
+        // Recharger les ministères si erreur réseau
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+R ou Cmd+R pour recharger les ministères
+            if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+                e.preventDefault();
+                loadMinistries();
             }
         });
     </script>
