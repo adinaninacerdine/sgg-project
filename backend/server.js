@@ -26,6 +26,7 @@ try {
     const usersRoutes = require('./routes/users');
     const ministriesRoutes = require('./routes/ministries');
     const permissionsRoutes = require('./routes/permissions');
+    const userPermissionsRoutes = require("./routes/user-permissions");
     
     app.use('/api/auth', authRoutes);
     app.use('/api/actions', actionsRoutes);
@@ -33,6 +34,7 @@ try {
     app.use('/api/users', usersRoutes);
     app.use('/api/ministries', ministriesRoutes);
     app.use('/api/permissions', permissionsRoutes);
+    app.use("/api/user-permissions", userPermissionsRoutes);
 
     console.log('✅ Routes chargées avec succès'); // AJOUTER CETTE LIGNE
 } catch (err) {

@@ -1,0 +1,659 @@
+<\!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Permissions - SGG</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+
+        .header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 500;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e1e8ed;
+            background-color: #f8f9fa;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e1e8ed;
+            margin-bottom: 2rem;
+        }
+
+        .tab {
+            padding: 1rem 2rem;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 1rem;
+            color: #666;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            margin-bottom: -2px;
+        }
+
+        .tab:hover {
+            color: #2c3e50;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-success {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #229954;
+        }
+
+        .btn-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+
+        .user-list {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .user-item {
+            padding: 1rem;
+            border: 1px solid #e1e8ed;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.3s;
+        }
+
+        .user-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .user-info h3 {
+            margin-bottom: 0.25rem;
+            color: #2c3e50;
+        }
+
+        .user-info p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .ministry-permissions {
+            margin-top: 2rem;
+        }
+
+        .permission-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .ministry-card {
+            border: 1px solid #e1e8ed;
+            border-radius: 4px;
+            padding: 1rem;
+        }
+
+        .ministry-header {
+            font-weight: 500;
+            margin-bottom: 1rem;
+            color: #2c3e50;
+        }
+
+        .permission-checkboxes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.5rem;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 1.2rem;
+            height: 1.2rem;
+            cursor: pointer;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            max-width: 800px;
+            margin: 2rem auto;
+            border-radius: 8px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e1e8ed;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Gestion des Permissions</h1>
+    </div>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('users')">Utilisateurs</button>
+            <button class="tab" onclick="showTab('create')">Créer un Utilisateur</button>
+        </div>
+
+        <\!-- Liste des utilisateurs -->
+        <div id="users-tab" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Utilisateurs et Permissions</h2>
+                </div>
+                <div class="card-body">
+                    <div id="users-list" class="user-list">
+                        <\!-- Les utilisateurs seront affichés ici -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <\!-- Créer un utilisateur -->
+        <div id="create-tab" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Créer un Nouvel Utilisateur</h2>
+                </div>
+                <div class="card-body">
+                    <form id="create-user-form">
+                        <div class="form-group">
+                            <label for="name">Nom complet</label>
+                            <input type="text" id="name" name="name" class="form-control" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email" class="form-control" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="password">Mot de passe</label>
+                            <input type="password" id="password" name="password" class="form-control" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="role">Rôle</label>
+                            <select id="role" name="role" class="form-control">
+                                <option value="user">Utilisateur</option>
+                                <option value="editor">Éditeur</option>
+                                <option value="admin">Administrateur</option>
+                            </select>
+                        </div>
+
+                        <div class="ministry-permissions">
+                            <h3>Permissions par Ministère</h3>
+                            <div id="create-ministry-permissions" class="permission-grid">
+                                <\!-- Les ministères seront chargés ici -->
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Créer l'Utilisateur</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <\!-- Modal pour éditer les permissions -->
+    <div id="permissions-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Modifier les Permissions</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-body">
+                <\!-- Le contenu sera injecté ici -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '/api';
+        const token = localStorage.getItem('token');
+
+        if (\!token) {
+            window.location.href = '/login.html';
+        }
+
+        let ministries = [];
+        let currentUserId = null;
+
+        async function init() {
+            await loadMinistries();
+            await loadUsers();
+            setupCreateForm();
+        }
+
+        async function loadMinistries() {
+            try {
+                const response = await fetch(`${API_URL}/user-permissions/ministries`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    ministries = await response.json();
+                }
+            } catch (error) {
+                console.error('Erreur chargement ministères:', error);
+            }
+        }
+
+        async function loadUsers() {
+            try {
+                const response = await fetch(`${API_URL}/user-permissions/summary`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const users = await response.json();
+                    displayUsers(users);
+                }
+            } catch (error) {
+                console.error('Erreur chargement utilisateurs:', error);
+            }
+        }
+
+        function displayUsers(users) {
+            const container = document.getElementById('users-list');
+            container.innerHTML = '';
+
+            users.forEach(user => {
+                const userDiv = document.createElement('div');
+                userDiv.className = 'user-item';
+                userDiv.innerHTML = `
+                    <div class="user-info">
+                        <h3>${user.name}</h3>
+                        <p>${user.email} - ${user.role}</p>
+                        <p>Ministères: ${user.ministries ? user.ministries.join(', ') : 'Aucun'}</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="editUserPermissions(${user.id})">
+                        Modifier Permissions
+                    </button>
+                `;
+                container.appendChild(userDiv);
+            });
+        }
+
+        async function editUserPermissions(userId) {
+            currentUserId = userId;
+            
+            try {
+                const response = await fetch(`${API_URL}/user-permissions/user/${userId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const permissions = await response.json();
+                    showPermissionsModal(permissions);
+                }
+            } catch (error) {
+                console.error('Erreur chargement permissions:', error);
+            }
+        }
+
+        function showPermissionsModal(userPermissions) {
+            const modal = document.getElementById('permissions-modal');
+            const modalBody = document.getElementById('modal-body');
+            
+            const userName = userPermissions[0]?.user_name || 'Utilisateur';
+            
+            let html = `<h3>Permissions de ${userName}</h3>`;
+            html += '<form id="edit-permissions-form">';
+            html += '<div class="permission-grid">';
+
+            ministries.forEach(ministry => {
+                const perm = userPermissions.find(p => p.ministry_id === ministry.id) || {};
+                
+                html += `
+                    <div class="ministry-card">
+                        <div class="ministry-header">${ministry.name}</div>
+                        <div class="permission-checkboxes">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="view_${ministry.id}" 
+                                       ${perm.can_view_actions ? 'checked' : ''}>
+                                <label for="view_${ministry.id}">Lecture</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="create_${ministry.id}" 
+                                       ${perm.can_create_actions ? 'checked' : ''}>
+                                <label for="create_${ministry.id}">Création</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="edit_${ministry.id}" 
+                                       ${perm.can_edit_actions ? 'checked' : ''}>
+                                <label for="edit_${ministry.id}">Modification</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="delete_${ministry.id}" 
+                                       ${perm.can_delete_actions ? 'checked' : ''}>
+                                <label for="delete_${ministry.id}">Suppression</label>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            html += '<button type="submit" class="btn btn-success" style="margin-top: 2rem;">Enregistrer</button>';
+            html += '</form>';
+
+            modalBody.innerHTML = html;
+            modal.style.display = 'block';
+
+            document.getElementById('edit-permissions-form').addEventListener('submit', savePermissions);
+        }
+
+        async function savePermissions(e) {
+            e.preventDefault();
+
+            const permissions = ministries.map(ministry => {
+                return {
+                    ministry_id: ministry.id,
+                    can_view: document.getElementById(`view_${ministry.id}`).checked,
+                    can_create: document.getElementById(`create_${ministry.id}`).checked,
+                    can_edit: document.getElementById(`edit_${ministry.id}`).checked,
+                    can_delete: document.getElementById(`delete_${ministry.id}`).checked
+                };
+            });
+
+            try {
+                const response = await fetch(`${API_URL}/user-permissions/assign`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_id: currentUserId,
+                        ministry_permissions: permissions
+                    })
+                });
+
+                if (response.ok) {
+                    showAlert('Permissions mises à jour avec succès', 'success');
+                    closeModal();
+                    loadUsers();
+                } else {
+                    showAlert('Erreur lors de la mise à jour des permissions', 'error');
+                }
+            } catch (error) {
+                console.error('Erreur sauvegarde permissions:', error);
+                showAlert('Erreur lors de la mise à jour des permissions', 'error');
+            }
+        }
+
+        function setupCreateForm() {
+            const container = document.getElementById('create-ministry-permissions');
+            container.innerHTML = '';
+
+            ministries.forEach(ministry => {
+                const div = document.createElement('div');
+                div.className = 'ministry-card';
+                div.innerHTML = `
+                    <div class="ministry-header">${ministry.name}</div>
+                    <div class="permission-checkboxes">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="new_view_${ministry.id}">
+                            <label for="new_view_${ministry.id}">Lecture</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="new_create_${ministry.id}">
+                            <label for="new_create_${ministry.id}">Création</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="new_edit_${ministry.id}">
+                            <label for="new_edit_${ministry.id}">Modification</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="new_delete_${ministry.id}">
+                            <label for="new_delete_${ministry.id}">Suppression</label>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+
+            document.getElementById('create-user-form').addEventListener('submit', createUser);
+        }
+
+        async function createUser(e) {
+            e.preventDefault();
+
+            const formData = new FormData(e.target);
+            const permissions = ministries.map(ministry => {
+                return {
+                    ministry_id: ministry.id,
+                    can_view: document.getElementById(`new_view_${ministry.id}`).checked,
+                    can_create: document.getElementById(`new_create_${ministry.id}`).checked,
+                    can_edit: document.getElementById(`new_edit_${ministry.id}`).checked,
+                    can_delete: document.getElementById(`new_delete_${ministry.id}`).checked
+                };
+            });
+
+            try {
+                const response = await fetch(`${API_URL}/user-permissions/create-user`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: formData.get('name'),
+                        email: formData.get('email'),
+                        password: formData.get('password'),
+                        role: formData.get('role'),
+                        ministry_permissions: permissions
+                    })
+                });
+
+                if (response.ok) {
+                    showAlert('Utilisateur créé avec succès', 'success');
+                    e.target.reset();
+                    showTab('users');
+                    loadUsers();
+                } else {
+                    const error = await response.json();
+                    showAlert(error.error || 'Erreur lors de la création', 'error');
+                }
+            } catch (error) {
+                console.error('Erreur création utilisateur:', error);
+                showAlert('Erreur lors de la création de l\'utilisateur', 'error');
+            }
+        }
+
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.style.display = 'none';
+            });
+
+            event.target.classList.add('active');
+            document.getElementById(`${tabName}-tab`).style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('permissions-modal').style.display = 'none';
+        }
+
+        function showAlert(message, type) {
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            
+            document.querySelector('.container').prepend(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 3000);
+        }
+
+        // Fermer la modal en cliquant à l'extérieur
+        window.onclick = function(event) {
+            const modal = document.getElementById('permissions-modal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        // Initialiser l'application
+        init();
+    </script>
+</body>
+</html>
